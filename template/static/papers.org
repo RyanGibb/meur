@@ -1,0 +1,28 @@
+---
+title: Papers
+feed: papers
+---
+$if(html)$
+#+begin_export html
+<div>
+$-for(papers)$
+    <h3 id="$name$">
+        <a href="#$name$" class="anchor" aria-hidden="true">§</a>
+        <a href="/papers/$name$.html">$title$</a>
+    </h3>
+    $parsed$
+    <a href="/papers/$name$.pdf">PDF</a>
+    $-if(url)$ <a href="$url$">URL</a> $-endif$
+    $-if(url)$ <a href="/papers/$name$.bib">BibTeX</a> $-endif$
+$-endfor$
+</div>
+#+end_export
+$else$
+#+begin_export markdown
+$-for(papers)$
+### $title$
+$mdParsed$
+[PDF](/papers/$name$.pdf)$if(url)$ | [URL]($url$)$endif$ | [BibTeX](/papers/$name$.bib)
+$-endfor$
+#+end_export
+$endif$

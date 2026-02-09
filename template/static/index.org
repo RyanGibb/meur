@@ -1,0 +1,15 @@
+---
+title: Index
+---
+
+An index of all the webpages on this site.
+
+$if(html)$
+#+begin_export html
+$partial("templates/page-list.html")$
+#+end_export
+$else$
+#+begin_export markdown
+$partial("templates/page-list.md")$
+#+end_export
+$endif$

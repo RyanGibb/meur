@@ -1,0 +1,404 @@
+@font-face {
+	font-family: "Noto Sans manual";
+	src: url(fonts/noto-sans/NotoSans-Regular.ttf);
+}
+
+:root {
+	--radius: 5px;
+	/* Define Light Theme Variables */
+	--background-color: #fff;
+	--text-color: #222;
+	--link-color: #bbb;
+	--link-hover-color: #222;
+	--blockquote-color: #ccc;
+	--code-bg-color: #ddd;
+	--code-text-color: #222;
+	/* --- Syntax Highlighting Variables (Gruvbox Light) --- */
+	--syntax-al: #cc241d; /* Alert -> Red */
+	--syntax-an: #458588; /* Annotation -> Blue */
+	--syntax-at: #98971a; /* Attribute -> Green */
+	--syntax-bn: #b16286; /* BaseN -> Purple */
+	--syntax-bu: #d65d0e; /* BuiltIn -> Orange */
+	--syntax-cf: #b16286; /* ControlFlow -> Purple */
+	--syntax-ch: #98971a; /* Char -> Green */
+	--syntax-cn: #b16286; /* Constant -> Purple */
+	--syntax-co: #928374; /* Comment -> Darker Gray (from row 2) */
+	--syntax-cv: #928374; /* CommentVar -> Darker Gray */
+	--syntax-do: #928374; /* Documentation -> Darker Gray */
+	--syntax-dt: #d79921; /* DataType -> Yellow */
+	--syntax-dv: #b16286; /* DecVal -> Purple */
+	--syntax-er: #cc241d; /* Error -> Red */
+	--syntax-ex: var(--code-text-color); /* Extension -> Default fg */
+	--syntax-fl: #b16286; /* Float -> Purple */
+	--syntax-fu: #98971a; /* Function -> Green */
+	--syntax-im: #689d6a; /* Import -> Aqua */
+	--syntax-in: #458588; /* Information -> Blue */
+	--syntax-kw: #cc241d; /* Keyword -> Red */
+	--syntax-op: #7c6f64; /* Operator -> Gray */
+	--syntax-ot: var(--code-text-color); /* Other -> Default fg */
+	--syntax-pp: #d65d0e; /* Preprocessor -> Orange */
+	--syntax-sc: #98971a; /* SpecialChar -> Green */
+	--syntax-ss: #98971a; /* SpecialString -> Green */
+	--syntax-st: #98971a; /* String -> Green */
+	--syntax-va: #458588; /* Variable -> Blue */
+	--syntax-vs: #98971a; /* VerbatimString -> Green */
+	--syntax-wa: #d79921; /* Warning -> Yellow */}
+
+html[data-theme='dark'] {
+	/* Define Dark Theme Variables */
+	--background-color: #222;
+	--text-color: #fff;
+	--link-color: #666;
+	--link-hover-color: #fff;
+	--blockquote-color: #555;
+	/* --- Syntax Highlighting (Gruvbox Dark) --- */
+	--code-bg-color: #444;
+	--code-text-color: #fff;
+	--syntax-al: #fb4934; /* Alert -> Bright Red */
+	--syntax-an: #83a598; /* Annotation -> Bright Blue */
+	--syntax-at: #8ec07c; /* Attribute -> Bright Aqua */
+	--syntax-bn: #d3869b; /* BaseN -> Bright Purple */
+	--syntax-bu: #fabd2f; /* BuiltIn -> Bright Yellow */
+	--syntax-cf: #fb4934; /* ControlFlow -> Bright Red */
+	--syntax-ch: #b8bb26; /* Char -> Bright Green */
+	--syntax-cn: #d3869b; /* Constant -> Bright Purple */
+	--syntax-co: #928374; /* Comment -> Bright Gray */
+	--syntax-cv: #928374; /* CommentVar -> Bright Gray */
+	--syntax-do: #928374; /* Documentation -> Bright Gray */
+	--syntax-dt: #fabd2f; /* DataType -> Bright Yellow */
+	--syntax-dv: #d3869b; /* DecVal -> Bright Purple */
+	--syntax-er: #fb4934; /* Error -> Bright Red */
+	--syntax-ex: var(--code-text-color); /* Extension -> Default fg */
+	--syntax-fl: #d3869b; /* Float -> Bright Purple */
+	--syntax-fu: #fabd2f; /* Function -> Bright Yellow */
+	--syntax-im: #fb4934; /* Import -> Bright Red */
+	--syntax-in: #83a598; /* Information -> Bright Blue */
+	--syntax-kw: #fb4934; /* Keyword -> Bright Red */
+	--syntax-op: var(--code-text-color); /* Operator -> Default fg */
+	--syntax-ot: #ebdbb2; /* Other -> Default fg */
+	--syntax-pp: #fe8019; /* Preprocessor -> Bright Orange */
+	--syntax-sc: #b8bb26; /* SpecialChar -> Bright Green */
+	--syntax-ss: #b8bb26; /* SpecialString -> Bright Green */
+	--syntax-st: #b8bb26; /* String -> Bright Green */
+	--syntax-va: #83a598; /* Variable -> Bright Blue */
+	--syntax-vs: #b8bb26; /* VerbatimString -> Bright Green */
+	--syntax-wa: #fabd2f; /* Warning -> Bright Yellow */
+}
+
+body {
+	font-family: "Noto Sans", "Notto Sans manual", sans-serif;
+	font-size: 16px;
+	letter-spacing: 0px;
+	font-stretch: normal;
+	padding: 1em 1em;
+	color: var(--text-color);
+	background-color: var(--background-color);
+	overflow-wrap: break-word;
+}
+
+main {
+	max-width: 700px;
+	margin: auto;
+}
+
+p {
+	text-align: justify;
+}
+
+h1, h3, h4, h5, h6 {
+	font-weight: normal;
+}
+
+nav {
+	flex-wrap: wrap;
+	display: flex;
+	justify-content: center;
+	gap: 1ex;
+}
+
+nav a {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.theme-icon {
+	height: 24px;
+	cursor: pointer;
+	vertical-align: middle;
+}
+
+.theme-icon path {
+	fill: var(--link-color);
+}
+
+.theme-icon:hover path {
+	fill: var(--link-hover-color);
+}
+
+html:not([data-theme='dark']) .icon-moon {
+	display: none;
+}
+html:not([data-theme='dark']) .icon-sun {
+	display: inline-block;
+}
+
+html[data-theme='dark'] .icon-sun {
+	display: none;
+}
+html[data-theme='dark'] .icon-moon {
+	display: inline-block;
+}
+
+a {
+	color: var(--text-color);
+	text-decoration-skip-ink: auto;
+	text-decoration-color: var(--link-color);
+	text-decoration-thickness: 1.5px;
+}
+
+a:hover {
+	text-decoration-color: var(--link-hover-color);
+}
+
+a svg {
+	stroke: var(--link-color);
+}
+
+a:hover svg {
+	stroke: var(--link-hover-color);
+}
+
+figure {
+	text-align: center;
+}
+
+img {
+	max-width: 100%;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+}
+
+figure.inline {
+	float: right;
+	margin: 0 0 1em 1em;
+	text-align: center;
+}
+
+figure.inline img {
+	width: 200px;
+}
+
+@media (max-width: 640px) {
+	figure.inline {
+		float: none;
+		margin: 1em auto;
+	}
+}
+
+blockquote {
+	font-style: italic;
+	padding: 0 10px;
+	margin: 0 0 20px;
+	border-left: 10px solid var(--blockquote-color);
+	color: var(--text-color);
+}
+
+.anchor {
+	color: var(--link-color);
+	text-decoration: none;
+	content: "§";
+	display: inline-block;
+	width: 1ex;
+	margin-left: -1ex;
+	position: absolute;
+}
+
+.anchor:hover {
+	color: var(--link-hover-color);
+}
+
+*:target .anchor {
+	color: var(--link-hover-color);
+}
+
+.footnote-back {
+	text-decoration: none;
+	color: var(--link-color);
+}
+
+.footnote-back:hover {
+	color: var(--text-colour);
+}
+
+.footnote-ref {
+	text-decoration: none;
+}
+
+.footnote-ref sup {
+	text-decoration: underline;
+	text-decoration-skip-ink: auto;
+	text-decoration-color: var(--link-color);
+	text-decoration-thickness: 1.5px;
+}
+
+.footnote-ref sup:hover {
+	text-decoration-color: var(--link-hover-color);
+}
+
+iframe {
+	width: 100%;
+	aspect-ratio: 16/9;
+}
+
+ul, ol {
+	padding-inline-start: 30px;
+}
+
+ul {
+	list-style-type: disc;
+}
+
+.container {
+	display: flex;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	align-items: baseline;
+}
+
+.rss-icon {
+	width: 18px;
+	vertical-align: middle;
+}
+
+a .rss-icon path {
+	fill: var(--link-color);
+}
+
+a:hover .rss-icon path {
+	fill: var(--link-hover-color);
+}
+
+@media (max-width: 640px) {
+	.container {
+		flex-direction: column;
+	}
+}
+
+li {
+	margin-bottom: 0.5em;
+	margin-top: 0.5em;
+}
+
+li.post-item,
+li.paper-item,
+li.talk-item {
+	list-style: none;
+	position: relative;
+}
+
+li.post-item::before,
+li.paper-item::before,
+li.talk-item::before {
+	content: '';
+	position: absolute;
+	left: -22px;
+	top: 3px;
+	width: 18px;
+	height: 18px;
+	background-size: contain;
+	background-repeat: no-repeat;
+}
+
+li.post-item::before,
+html[data-theme='dark'] li.post-item:has(a:hover)::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23bbb' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M6 2 L6 30 26 30 26 10 18 2 Z M18 2 L18 10 26 10'/%3E%3C/svg%3E");
+}
+
+li.paper-item::before,
+html[data-theme='dark'] li.paper-item:has(a:hover)::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23bbb' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M16 7 C16 7 9 1 2 6 L2 28 C9 23 16 28 16 28 16 28 23 23 30 28 L30 6 C23 1 16 7 16 7 Z M16 7 L16 28'/%3E%3C/svg%3E");
+}
+
+li.talk-item::before,
+html[data-theme='dark'] li.talk-item:has(a:hover)::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23bbb' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M22 13 L30 8 30 24 22 19 Z M2 8 L2 24 22 24 22 8 Z'/%3E%3C/svg%3E");
+}
+
+li.post-item:has(a:hover)::before,
+html[data-theme='dark'] li.post-item::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M6 2 L6 30 26 30 26 10 18 2 Z M18 2 L18 10 26 10'/%3E%3C/svg%3E");
+}
+
+li.paper-item:has(a:hover)::before,
+html[data-theme='dark'] li.paper-item::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M16 7 C16 7 9 1 2 6 L2 28 C9 23 16 28 16 28 16 28 23 23 30 28 L30 6 C23 1 16 7 16 7 Z M16 7 L16 28'/%3E%3C/svg%3E");
+}
+
+li.talk-item:has(a:hover)::before,
+html[data-theme='dark'] li.talk-item::before {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32' fill='none' stroke='%23666' stroke-linecap='round' stroke-linejoin='round' stroke-width='2'%3E%3Cpath d='M22 13 L30 8 30 24 22 19 Z M2 8 L2 24 22 24 22 8 Z'/%3E%3C/svg%3E");
+}
+
+.gallery {
+	position: relative;
+	left: calc(50% - 50vw);
+	width: calc(100vw);
+}
+
+.gallery > div {
+	display: flex;
+	justify-content: space-around;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.gallery > div > div {
+	padding: 1ex;
+	max-width: calc(min(640px, 100%));
+	max-height: calc(min(640px, 100%));
+}
+
+span:is(.TODO, .MOVE, .DONE, .KILL, .PROJ) {
+	font-family: "monospace";
+}
+
+/* Org keyword tagged list items */
+
+ol > li:has(> p > span > span.TODO) {
+	list-style-type: "O ";
+}
+
+ol > li:has(> p > span > span.MOVE) {
+	list-style-type: "> ";
+}
+
+ol > li:has(> p > span > span.DONE) {
+	list-style-type: "X ";
+}
+
+
+ol > li:has(> p > span > span.KILL) {
+	text-decoration: line-through;
+	list-style-type: "~ ";
+}
+
+ol > li:has(> p > span > span.PROJ) {
+	list-style-type: "# ";
+}
+
+/* We show list items status with list-stype-type, so we hide this span */
+li > p > span > span:is(.TODO, .MOVE, .DONE, .KILL, .PROJ) {
+	display:none;
+}
+
+/* lists that are a parent of a org keyword tagged list item */
+ol:has(span:is(.TODO, .MOVE, .DONE, .KILL, .PROJ)) {
+	list-style-type: "- ";
+}
+
+/* lists that are a child of a org keyword tagged list item */
+ol:has(span:is(.TODO, .MOVE, .DONE, .KILL, .PROJ)) ol {
+	list-style-type: "- ";
+}

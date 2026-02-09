@@ -1,0 +1,21 @@
+---
+title: Tags
+---
+
+$if(html)$
+#+begin_export html
+<ul>
+    $for(tags)$
+    <li>
+        <a href="$url$">$tag$</a>
+        ($count$)
+    </li>
+    $endfor$
+</ul>
+#+end_export
+$else$
+#+begin_export markdown
+$for(tags)$- [$tag$]($url$) ($count$)
+$endfor$
+#+end_export
+$endif$

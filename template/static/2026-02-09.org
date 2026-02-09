@@ -1,0 +1,10 @@
+#+OPTIONS: H:1
+#+TODO: TODO | MOVE KILL DONE
+* Making a toaster 
+** DONE got the parts
+** DONE planned design
+** MOVE make it
+* Profit
+** DONE Phase 1: Collect underpants
+** TODO Phase 2: ?
+** TODO Phase 3: Profit

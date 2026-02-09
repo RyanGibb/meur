@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+    <title>$if(pagetitle)$$pagetitle$$else$$title$$endif$</title>
+    <link rel="stylesheet" href="/style.css" />
+    <link rel="stylesheet" href="/code.css" />
+    <link id="favicon" rel="shortcut icon" href="/favicon_light.svg">
+    <link rel="shortcut icon" href="/favicon.ico">
+    <script src="/scripts/toggle-theme.js" defer></script>
+    $-if(feed)$
+    <link rel="alternate" type="application/atom+xml" title="$title$" href="https://ryan.freumh.org/$feed$.xml" />
+    <link rel="alternate" type="application/feed+json" title="$title$" href="https://ryan.freumh.org/$feed$.json" />
+    $-endif$
+    $-if(header-includes)$
+    $header-includes$
+    $-endif$
+  </head>
+  <body>
+    <header>
+      <nav>
+        <a href="/">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M12 20 L12 30 4 30 4 12 16 2 28 12 28 30 20 30 20 20 Z" />
+          </svg>
+          Home
+        </a>
+        <a href="/posts.html">
+          <svg id="i-file" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M6 2 L6 30 26 30 26 10 18 2 Z M18 2 L18 10 26 10" />
+          </svg>
+          Posts
+        </a>
+        <a href="/papers.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M16 7 C16 7 9 1 2 6 L2 28 C9 23 16 28 16 28 16 28 23 23 30 28 L30 6 C23 1 16 7 16 7 Z M16 7 L16 28" />
+          </svg>
+          Papers
+        </a>
+        <a href="/talks.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M22 13 L30 8 30 24 22 19 Z M2 8 L2 24 22 24 22 8 Z" />
+          </svg>
+          Talks
+        </a>
+        <a href="/tags.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <circle cx="24" cy="8" r="2" />
+            <path d="M2 18 L18 2 30 2 30 14 14 30 Z" />
+          </svg>
+          Tags
+        </a>
+        <a href="/teaching.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M2 14L16 8L30 14L16 20L2 14Z"></path>
+            <path d="M8 17V20C8 22 12 24 16 24C20 24 24 22 24 20V17"></path>
+            <path d="M28 16V26"></path>
+            <circle cy="28" cx="28" r="1"></circle>
+          </svg>
+          Teaching
+        </a>
+        <a href="/logs.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M4 10 L4 28 28 28 28 10 M2 4 L2 10 30 10 30 4 Z M12 15 L20 15" />
+          </svg>
+          Logs
+        </a>
+        <a href="/photos.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M20 24 L12 16 2 26 2 2 30 2 30 24 M16 20 L22 14 30 22 30 30 2 30 2 24" />
+            <circle cx="10" cy="9" r="3" />
+          </svg>
+          Photos
+        </a>
+        <a href="/about.html">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="18" height="18" fill="none" stroke="currentcolor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2">
+            <path d="M22 11 C22 16 19 20 16 20 13 20 10 16 10 11 10 6 12 3 16 3 20 3 22 6 22 11 Z M4 30 L28 30 C28 21 22 20 16 20 10 20 4 21 4 30 Z" />
+          </svg>
+          About
+        </a>
+        <div id="theme-toggle" >
+          <svg class="theme-icon icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill="currentColor" />
+          </svg>
+          <svg class="theme-icon icon-moon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20">
+            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" fill="currentColor" />
+          </svg>
+        </div>
+      </nav>
+    </header>
+    <main role="main">
+      <div class="container">
+        <h1>$title$</h1>
+        <span style="display: inline-flex; gap: 10px;">
+          $-if(feed)$
+          <a href="/$feed$.xml" title="Atom feed for $title$">
+            <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path d="M0 64C0 46.3 14.3 32 32 32c229.8 0 416 186.2 416 416c0 17.7-14.3 32-32 32s-32-14.3-32-32C384 253.6 226.4 96 32 96C14.3 96 0 81.7 0 64zM0 416a64 64 0 1 1 128 0A64 64 0 1 1 0 416zM32 160c159.1 0 288 128.9 288 288c0 17.7-14.3 32-32 32s-32-14.3-32-32c0-123.7-100.3-224-224-224c-17.7 0-32-14.3-32-32s14.3-32 32-32z" fill="currentColor" />
+            </svg>
+            <span>Atom</span>
+          </a>
+          <a href="/$feed$.json" title="JSON feed for $title$">
+            <svg class="rss-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
+              <path d="M0 64C0 46.3 14.3 32 32 32c229.8 0 416 186.2 416 416c0 17.7-14.3 32-32 32s-32-14.3-32-32C384 253.6 226.4 96 32 96C14.3 96 0 81.7 0 64zM0 416a64 64 0 1 1 128 0A64 64 0 1 1 0 416zM32 160c159.1 0 288 128.9 288 288c0 17.7-14.3 32-32 32s-32-14.3-32-32c0-123.7-100.3-224-224-224c-17.7 0-32-14.3-32-32s14.3-32 32-32z" fill="currentColor" />
+            </svg>
+            <span>JSON</span>
+          </a>
+          $-endif$
+          <a href="/$markdown$" title="Markdown version">
+            <span>Markdown</span>
+          </a>
+        </span>
+      </div>
+      $-if(subtitle)$
+      <h2>$subtitle$</h2>
+      $-endif$
+      $body$
+    </main>
+  </body>
+</html>

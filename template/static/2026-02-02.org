@@ -1,0 +1,5 @@
+#+OPTIONS: H:0
+#+TODO: TODO | MOVE KILL DONE
+* DONE go shopping
+** DONE potatoes
+*** I got them this week

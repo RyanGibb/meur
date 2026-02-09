@@ -1,0 +1,18 @@
+$-if(tags)$
+<div>Tags: $for(tags)$<a title="All pages tagged '$tag$'." href="/$lowerTag$.html" rel="tag">$tag$</a>$sep$, $endfor$.</div>
+$-endif$
+$-if(doi)$
+<div>DOI: <a href="https://doi.org/$doi$">$doi$</a>.</div>
+$-endif$
+
+$parsed$
+
+<p>
+  <a href="/papers/$name$.pdf">PDF</a>
+  $-if(url)$ <a href="$url$">URL</a>$endif$
+  <a href="/papers/$name$.bib">BibTeX</a>
+</p>
+$-if(abstract)$
+
+$abstract$
+$-endif$

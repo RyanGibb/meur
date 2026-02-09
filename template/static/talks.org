@@ -1,0 +1,31 @@
+---
+title: Talks
+feed: talks
+---
+$if(html)$
+#+begin_export html
+<div>
+$-for(talks)$
+    <h3 id="$name$">
+        <a href="#$name$" class="anchor" aria-hidden="true">§</a>
+        <a href="/talks/$name$.html">$title$</a>
+    </h3>
+    $-if(video)$<iframe src="$video$" frameborder="0" sandbox="allow-same-origin allow-scripts" allowfullscreen="allowfullscreen"></iframe>$-endif$
+    $parsed$
+    <a href="/talks/slides/$name$.html">Slides</a>
+    $-if(url)$
+    <a href="$url$">URL</a>
+    $-endif$
+    <a href="/talks/$name$.bib">BibTeX</a>
+$-endfor$
+</div>
+#+end_export
+$else$
+#+begin_export markdown
+$-for(talks)$
+### $title$
+$mdParsed$
+$if(url)$[URL]($url$) | $endif$[BibTeX](/talks/$name$.bib)
+$-endfor$
+#+end_export
+$endif$

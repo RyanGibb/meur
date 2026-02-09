@@ -1,0 +1,69 @@
+cabal-version:      3.0
+name:               meur
+version:            0.1.0.0
+synopsis:           A static site generator built on Hakyll with bibliography, photos, and dual-format output
+description:        Meur is a static site generator that supports BibTeX bibliographies,
+                    photo galleries with EXIF metadata, dual HTML/Markdown output,
+                    RSS/Atom/JSON feeds, and tags. It can be used as a CLI tool or
+                    as a Haskell library.
+license:            BSD-3-Clause
+license-file:       LICENSE
+author:             Ryan T. Gibb
+maintainer:         ryan@freumh.org
+category:           Web
+build-type:         Simple
+extra-source-files: README.md
+
+common shared-properties
+  default-language: Haskell2010
+  ghc-options:      -Wall
+
+library
+  import:           shared-properties
+  hs-source-dirs:   src
+  exposed-modules:  Meur.Bib
+                  , Meur.BibHakyll
+                  , Meur.Builder
+                  , Meur.Compiler.Feed
+                  , Meur.Compiler.Photo
+                  , Meur.Compiler.Post
+                  , Meur.Compiler.Tag
+                  , Meur.Config
+                  , Meur.Context
+                  , Meur.Pandoc
+                  , Meur.Types
+                  , Meur.Util
+  build-depends:    aeson >= 2.0
+                  , base >= 4.14 && < 5
+                  , binary
+                  , blaze-html
+                  , bytestring
+                  , containers
+                  , directory
+                  , filepath
+                  , hakyll >= 4.15
+                  , hsexif
+                  , pandoc >= 3.0
+                  , pandoc-lua-engine
+                  , pandoc-types
+                  , parsec
+                  , process
+                  , text
+                  , time
+                  , time-locale-compat
+                  , unix
+                  , unordered-containers
+                  , yaml >= 0.11
+
+executable meur
+  import:           shared-properties
+  hs-source-dirs:   app
+  main-is:          Main.hs
+  build-depends:    base
+                  , directory
+                  , filepath
+                  , hakyll
+                  , meur
+                  , optparse-applicative >= 0.16
+                  , yaml
+  ghc-options:      -threaded -rtsopts -with-rtsopts=-N

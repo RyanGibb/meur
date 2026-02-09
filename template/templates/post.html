@@ -1,0 +1,15 @@
+<div class="container">
+  $-if(published)$
+  <span>Published $published$.</span>
+  $-endif$
+  $-if(updated)$
+  <span style="font-style: italic;">Last update $updated$.</span>
+  $-endif$
+</div>
+$-if(tags)$
+<div>Tags: $for(tags)$<a title="All pages tagged '$tag$'." href="$lowerTag$.html" rel="tag">$tag$</a>$sep$, $endfor$.</div>
+$-endif$
+$-if(doi)$
+<div>DOI: <a href="https://doi.org/$doi$">$doi$</a>.</div>
+$-endif$
+$body$

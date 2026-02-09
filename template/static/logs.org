@@ -1,0 +1,41 @@
+---
+title: Logs
+feed: logs
+---
+#+TODO: TODO PROJ | MOVE KILL DONE NOTE
+#+OPTIONS: H:1
+
+#+begin_export html
+<style>
+ol > li > p {
+    margin: 0;
+}
+</style>
+#+end_export
+
+** Items are one of:
+*** TODO To-do
+*** DONE Completed
+*** MOVE Moved to next week
+*** KILL Cancelled
+*** PROJ A project
+*** A note
+
+** Week beginning:
+
+$if(html)$
+#+begin_export html
+<ul class="pages">
+    $for(pages)$
+    <li>
+        <a href="$url$">$published$</a>
+    </li>
+    $endfor$
+</ul>
+#+end_export
+$else$
+#+begin_export markdown
+$for(pages)$- [$published$]($url$)
+$endfor$
+#+end_export
+$endif$

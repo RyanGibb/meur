@@ -1,0 +1,16 @@
+<article>
+  <div class="container">
+    $-if(htmlPrev)$
+    <span>Previous: $htmlPrev$</span>
+    $-endif$
+    $-if(htmlNext)$
+    <span>Next: $htmlNext$</span>
+    $-endif$
+  </div>
+  $-if(tags)$
+  <div>Tags: $for(tags)$<a title="All pages tagged '$tag$'." href="/$lowerTag$.html" rel="tag">$tag$</a>$sep$, $endfor$.</div>
+  $-endif$
+  <section>
+    $body$
+  </section>
+</article>

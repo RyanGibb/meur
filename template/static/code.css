@@ -1,0 +1,51 @@
+code {
+	border-radius: var(--radius);
+	background: var(--code-bg-color);
+	color: var(--code-text-color);
+	text-align: center;
+	padding: 0 3px 0 3px;
+}
+
+pre code {
+	display: inline-block;
+	text-align: left;
+	overflow: auto;
+	max-width: calc(100vw - 2em);
+}
+
+pre:has(> code) {
+	position: relative;
+	text-align: center;
+	left: calc(50% - 50vw);
+	width: calc(100vw);
+}
+
+code span.al { color: var(--syntax-al); font-weight: bold; }
+code span.an { color: var(--syntax-an); font-weight: bold; font-style: italic; }
+code span.at { color: var(--syntax-at); }
+code span.bn { color: var(--syntax-bn); }
+code span.bu { color: var(--syntax-bu); }
+code span.cf { color: var(--syntax-cf); font-weight: bold; }
+code span.ch { color: var(--syntax-ch); }
+code span.cn { color: var(--syntax-cn); }
+code span.co { color: var(--syntax-co); font-style: italic; }
+code span.cv { color: var(--syntax-cv); font-weight: bold; font-style: italic; }
+code span.do { color: var(--syntax-do); font-style: italic; }
+code span.dt { color: var(--syntax-dt); }
+code span.dv { color: var(--syntax-dv); }
+code span.er { color: var(--syntax-er); font-weight: bold; }
+code span.ex { color: var(--syntax-ex); } /* Uses variable */
+code span.fl { color: var(--syntax-fl); }
+code span.fu { color: var(--syntax-fu); }
+code span.im { color: var(--syntax-im); font-weight: bold; }
+code span.in { color: var(--syntax-in); font-weight: bold; font-style: italic; }
+code span.kw { color: var(--syntax-kw); font-weight: bold; }
+code span.op { color: var(--syntax-op); }
+code span.ot { color: var(--syntax-ot); }
+code span.pp { color: var(--syntax-pp); }
+code span.sc { color: var(--syntax-sc); }
+code span.ss { color: var(--syntax-ss); }
+code span.st { color: var(--syntax-st); }
+code span.va { color: var(--syntax-va); }
+code span.vs { color: var(--syntax-vs); }
+code span.wa { color: var(--syntax-wa); font-weight: bold; font-style: italic; }

@@ -1,0 +1,4 @@
+dist-*
+_*
+result
+.direnv

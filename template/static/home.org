@@ -1,0 +1,21 @@
+---
+title: A blog
+feed: home
+---
+#+OPTIONS: *:nil
+
+Welcome to my website, take a look around.
+
+$if(html)$
+#+begin_export html
+$partial("templates/page-list.html")$
+#+end_export
+$else$
+#+begin_export markdown
+$partial("templates/page-list.md")$
+#+end_export
+$endif$
+
+-----
+
+View an [[file:index.org][index]] of all webpages available on this site.

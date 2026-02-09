@@ -1,0 +1,71 @@
+{
+  "version": "https://jsonfeed.org/version/1.1",
+  "title": "$title$",
+  "home_page_url": "$root$",
+  "feed_url": "$root$$url$",
+  "favicon": "$root$/favicon_light.svg",
+  $-if(authorName)$
+  "authors": [
+    {
+      "name": "$authorName$"
+      $-if(authorUrl)$,
+      "url": "$authorUrl$"
+      $-endif$
+    }
+  ],
+  $-endif$
+  "items": [
+    $-for(items)$
+    {
+      "id": "$if(doi)$https://doi.org/$doi$$else$$root$$url$$endif$",
+      "url": "$root$$url$",
+      "title": "$title$",
+      $-if(subtitle)$"summary": "$subtitle$",
+      $endif$
+      $-if(authorName)$
+      "authors": [
+        {
+          "name": "$authorName$"
+          $-if(authorUrl)$,
+          "url": "$authorUrl$"
+          $-endif$
+        }
+      ],
+      $-endif$
+      "date_published": "$published$",
+      "date_modified": "$updated$",
+      $-if(tags)$
+      "tags": [
+      $-for(tags)$
+        "$escapedTag$"
+      $-sep$,
+      $-endfor$
+      ],
+      $-endif$
+      $-if(references)$
+      "_references": [
+      $-for(references)$
+        {
+          $-if(doi)$
+          "url": "https://doi.org/$doi$",
+          "doi": "$doi$",
+          $-else$
+          $-if(url)$
+          "url": "$url$",
+          $-endif$
+          $-endif$
+          $-if(parsed)$
+          "reference": "$parsed$",
+          $-endif$
+          "cito": ["cites"]
+        }
+        $-sep$,
+        $-endfor$
+      ],
+      $-endif$
+      "content_html": "$content$"
+    }
+    $-sep$,
+    $-endfor$
+  ]
+}

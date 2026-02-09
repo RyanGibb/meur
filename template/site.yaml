@@ -1,0 +1,93 @@
+# Meur Static Site Generator Configuration
+# This file configures all aspects of your static site
+
+# Site metadata
+title: "ryan.freumh.org"
+description: "ryan.freumh.org"
+root: "https://ryan.freumh.org"
+
+# Author information
+author:
+  name: "Ryan T. Gibb"
+  email: "ryan@freumh.org"
+  url: "https://orcid.org/0009-0009-5702-3143"
+
+# Directory and file paths
+# All paths are relative to the site root
+paths:
+  # Source content directory
+  staticDir: "static"
+
+  # Template directory
+  templatesDir: "templates"
+
+  # Output directory for generated site
+  outputDir: "_site"
+
+  # Cache directory for Hakyll
+  cacheDir: "_cache"
+
+  # Scripts directory (Pandoc Lua filters)
+  scriptsDir: "scripts"
+
+  # Photo pattern
+  photosPattern: "static/photos/*"
+
+  # References file for citations
+  referencesFile: "references.bib"
+
+  # Default CSL style for posts and pages
+  defaultCslStyle: "ieee-with-url.csl"
+
+  # Lua filters for Pandoc transformations (applied in order)
+  luaFilters:
+    - "org-keywords.lua"
+    - "elem-ids.lua"
+    - "footnote-commas.lua"
+    - "anchor-links.lua"
+
+  # Lua filters for feed generation (subset of above)
+  luaFiltersFeed:
+    - "org-keywords.lua"
+    - "elem-ids.lua"
+    - "footnote-commas.lua"
+
+  # Bibliography configurations
+  bibliographies:
+    - name: "papers"
+      file: "papers.bib"
+      cslStyle: "ieee-with-url.csl"
+    - name: "talks"
+      file: "talks.bib"
+      cslStyle: "talk.csl"
+
+# Date formatting
+# Uses strftime format codes
+dateFormats:
+  # Default format for displaying dates
+  defaultFormat: "%-d %b. %Y"
+
+  # ISO 8601 format for feeds and sitemaps
+  isoFormat: "%Y-%m-%dT%H:%M:%SZ"
+
+# Feature toggles
+features:
+  # Enable photo gallery with EXIF metadata
+  enablePhotos: true
+
+  # Enable bibliography/citation support
+  enableBibliography: true
+
+  # Generate both HTML and Markdown versions of pages
+  enableDualOutput: true
+
+  # Generate RSS/Atom and JSON feeds
+  enableFeeds: true
+
+  # Enable tag system
+  enableTags: true
+
+  # Directory for geocoding cache (null to disable)
+  # If enabled, photo GPS coordinates will be reverse-geocoded to locations
+  enableGeocodingCache: "reverse-geocoding"
+

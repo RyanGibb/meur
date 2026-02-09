@@ -1,0 +1,15 @@
+<ul>
+  $-for(pages)$
+  <li$if(class)$ class="$class$"$endif$>
+    <div class="container">
+      <a href="$url$">$title$</a>
+      $-if(published)$
+      <span>$published$</span>
+      $-endif$
+    </div>
+    $-if(subtitle)$
+    <span>$subtitle$</span>
+    $-endif$
+  </li>
+  $-endfor$
+</ul>

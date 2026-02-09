@@ -1,0 +1,10 @@
+#+OPTIONS: H:0
+#+TODO: TODO | MOVE KILL DONE
+* go shopping
+** DONE bread
+** DONE milk
+** DONE eggs
+** MOVE potatoes
+*** they ran out
+** KILL carrots
+*** I changed my mind

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>$title$</title>
+  <link href="$root$$url$" rel="self" />
+  <link href="$root$" />
+  <id>$root$$url$</id>
+  $-if(authorName)$
+  <author>
+    <name>$authorName$</name>
+    $-if(authorEmail)$
+    <email>$authorEmail$</email>
+    $-endif$
+    $-if(authorUrl)$
+    <uri>$authorUrl$</uri>
+    $-endif$
+  </author>$endif$
+  <updated>$updated$</updated>
+  <icon>$root$/favicon_light.svg</icon>
+  $-for(items)$
+  <entry>
+    <id>
+      $-if(doi)-$
+        https://doi.org/$doi$
+      $-else-$
+      $root$$url$
+      $-endif-$
+    </id>
+	<title>$title$</title>
+    $-if(subtitle)$
+	<summary>$subtitle$</summary>
+    $-endif$
+    <link href="$root$$url$" />
+    <author>
+      <name>$authorName$</name>
+      $if(authorEmail)-$
+        <email>$authorEmail$</email>
+      $-endif$
+      <uri>https://orcid.org/0009-0009-5702-3143</uri>
+    </author>
+    <published>$published$</published>
+	<updated>$updated$</updated>
+    $-if(tags)$
+    $-for(tags)$
+    <category term="$tag$" />
+    $-endfor$
+    $-endif$
+    $if(content)-$
+    <content type="html"><![CDATA[$content$]]></content>
+    $-endif$
+  </entry>
+  $-endfor$
+</feed>

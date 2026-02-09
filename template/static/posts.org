@@ -1,0 +1,37 @@
+---
+title: Posts
+feed: posts
+---
+$if(html)$
+#+begin_export html
+<div>
+$-for(pages)$
+    <h3 id="$path$" class="container">
+        <span>
+          <a href="#$path$" class="anchor" aria-hidden="true">§</a>
+          <a href="$url$">$title$</a>
+        </span
+        <span>$published$</span>
+    </h3>
+    $-if(subtitle)$
+    <p><em>$subtitle$</em></p>
+    $-endif$
+    $-if(teaser)$
+    <p>$teaser$</p>
+    $-endif$
+$-endfor$
+</div>
+#+end_export
+$else$
+#+begin_export markdown
+$-for(pages)$
+### [$title$]($url$) ($published$)
+$-if(subtitle)$
+*$subtitle$*
+$-endif$
+$-if(teaser)$
+$teaser$
+$-endif$
+$-endfor$
+#+end_export
+$endif$
