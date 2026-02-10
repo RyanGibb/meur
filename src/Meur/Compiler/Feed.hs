@@ -103,7 +103,7 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
                 bibStr <-
                   makeItem b
                     >>= loadAndApplyTemplate
-                      (fromFilePath $ "templates/" ++ bibKindSingular kind ++ ".html")
+                      (fromFilePath $ "templates/" ++ bibKindSingular kind ++ "-feed.html")
                       (constField "html" "true" `mappend` bibPageContext (bibKindSingular kind) dateFormat tags)
                 return $ StringField $ itemBody bibStr
               PhotoItem i' -> do

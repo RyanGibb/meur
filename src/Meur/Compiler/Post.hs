@@ -94,7 +94,6 @@ postCompiler feedConfig pathConfig patterns tags template output =
             >>= saveSnapshot "body"
             >>= bibRenderFeed pathConfig cslFile refFile
             >>= saveSnapshot "teaser"
-            >>= loadAndApplyTemplate template ctx
             >>= absolutizeUrls feedConfig
             >>= saveSnapshot "feed"
           getResourceBody

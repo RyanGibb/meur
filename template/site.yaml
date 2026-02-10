@@ -48,8 +48,6 @@ paths:
 
   # Lua filters for feed generation (subset of above)
   luaFiltersFeed:
-    - "org-keywords.lua"
-    - "elem-ids.lua"
     - "footnote-commas.lua"
 
   # Bibliography configurations

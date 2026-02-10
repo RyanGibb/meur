@@ -156,7 +156,7 @@ instance FromJSON PathConfig where
       <*> v .:? "referencesFile" .!= "references.bib"
       <*> v .:? "defaultCslStyle" .!= "ieee-with-url.csl"
       <*> v .:? "luaFilters" .!= ["org-keywords.lua", "elem-ids.lua", "footnote-commas.lua", "anchor-links.lua"]
-      <*> v .:? "luaFiltersFeed" .!= ["org-keywords.lua", "elem-ids.lua", "footnote-commas.lua"]
+      <*> v .:? "luaFiltersFeed" .!= ["org-keywords.lua"]
 
 instance FromJSON BibConfig where
   parseJSON = withObject "BibConfig" $ \v ->
