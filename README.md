@@ -41,4 +41,4 @@ author:
   url: "https://example.com"
 ```
 
-See a complete template at [`template/`](./template).
+See a complete template at [`template/`](./template) and live at [https://ryan.freumh.org/var/meur-template/](https://ryan.freumh.org/var/meur-template/).
