@@ -46,7 +46,7 @@ writerOptions =
 markdownWriterOptions :: WriterOptions
 markdownWriterOptions =
   def
-    { writerExtensions = extensionsFromList [Ext_smart],
+    { writerExtensions = extensionsFromList [Ext_smart, Ext_raw_html],
       writerHighlightStyle = Just pygments,
       writerCiteMethod = Citeproc
     }

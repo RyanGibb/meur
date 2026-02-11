@@ -30,7 +30,7 @@ import Meur.BibHakyll (bibContext)
 import Meur.Compiler.Photo (photoContext)
 import Meur.Compiler.Tag (bibKindPlural, bibKindSingular, bibTagsField, pageTagsField)
 import Meur.Config (Patterns (..))
-import Meur.Types (BibKind (..), CombinedItem (..))
+import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
 import Meur.Util (dateFromTitle)
 import System.FilePath (replaceExtension, takeBaseName)
 
@@ -97,8 +97,8 @@ combinedItemContextfield geocodingCache patterns i key tags titleDateFormat post
       unContext (bibPageContext (bibKindSingular kind) bibDateFormat tags) key [] i'
     PhotoItem i' -> unContext (photoContext geocodingCache photoDateFormat) key [] i'
 
-combinedItemContext :: Maybe FilePath -> Patterns -> Tags -> String -> String -> String -> String -> Context CombinedItem
-combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat bibDateFormat photoDateFormat =
+combinedItemContext :: Maybe FilePath -> Patterns -> Tags -> String -> String -> String -> String -> Output -> Context CombinedItem
+combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat bibDateFormat photoDateFormat output =
   field
     "class"
     ( \item -> case itemBody item of
@@ -110,11 +110,15 @@ combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat 
     `mappend` field
       "url"
       ( \item -> case itemBody item of
-          BibItem k b -> return $ "/" ++ bibKindPlural k ++ "/" ++ Meur.Bib.name b ++ ".html"
+          BibItem k b -> return $ "/" ++ bibKindPlural k ++ "/" ++ Meur.Bib.name b ++ ext
           PostItem _ -> noResult ""
           PhotoItem _ -> noResult ""
       )
     `mappend` (Context $ \key _ i -> combinedItemContextfield geocodingCache patterns i key tags titleDateFormat postDateFormat bibDateFormat photoDateFormat)
+  where
+    ext = case output of
+      HTML -> ".html"
+      MD   -> ".md"
 
 adjacentLogFieldHtml :: Pattern -> Int -> String -> Item String -> Compiler String
 adjacentLogFieldHtml logPattern offset format item = do

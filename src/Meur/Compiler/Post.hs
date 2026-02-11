@@ -93,11 +93,11 @@ postCompiler feedConfig pathConfig patterns tags template output =
           getResourceBody
             >>= saveSnapshot "body"
             >>= bibRenderFeed pathConfig cslFile refFile
-            >>= saveSnapshot "teaser"
             >>= absolutizeUrls feedConfig
             >>= saveSnapshot "feed"
           getResourceBody
             >>= bibRenderHtml pathConfig cslFile refFile
+            >>= saveSnapshot "teaser"
             >>= loadAndApplyTemplate template ctx
             >>= loadAndApplyTemplate "templates/default.html" ctx
             >>= relativizeUrls
@@ -160,7 +160,7 @@ combinedListCompiler pathConfig geocodingCache patterns tags items output = do
   let refFile = referencesFile pathConfig
   let cslFile = defaultCslStyle pathConfig
   let dateFormat = "%-d %b. %Y"
-  let baseCtx = listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat) items `mappend` markdownTitleContext
+  let baseCtx = listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat output) items `mappend` markdownTitleContext
   let (bibRenderFn, defaultTemplate, ctx) = case output of
         HTML -> (bibRenderHtml pathConfig, "templates/default.html", constField "html" "true" `mappend` baseCtx)
         MD -> (bibRenderMarkdown pathConfig, "templates/default.md", baseCtx)
@@ -184,7 +184,7 @@ tagCompiler pathConfig geocodingCache patterns tags tag pattern bibs output = do
         constField "title" tag
           `mappend` constField "filename" filename
           `mappend` constField "feed" filename
-          `mappend` listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat) combinedItems
+          `mappend` listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat output) combinedItems
           `mappend` markdownField "markdown"
           `mappend` markdownTitleContext
   let (bibRenderFn, ctx, defaultTemplate, tagTemplate) = case output of

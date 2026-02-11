@@ -76,7 +76,7 @@ buildSite config =
                   create [fromCapture pat . T.unpack . T.toLower . T.pack $ tag] $ do
                     route idRoute
                     compile $ do
-                      posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "feed"
+                      posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "body"
                       let taggedBibs = filter (\(_, bib) -> bibHasTag tag bib) bibs
                       let items = combinedItemRecentFirst =<< makeCombinedItems posts taggedBibs []
                       combinedFeedCompiler feedtype feedConfig geocodingCache patterns dateFormat isoDateFormat tags (referencesFile paths) items
@@ -96,7 +96,7 @@ buildSite config =
           match "static/home.org" $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ do
-              posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasNoVersion)
+              posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasVersion "markdown")
               let items = combinedItemRecentFirst =<< makeCombinedItems posts bibs []
               combinedListCompiler paths geocodingCache patterns tags items MD
 
@@ -118,14 +118,14 @@ buildSite config =
         match "static/logs.org" $ do
           route $ staticRoute `composeRoutes` setExtension "html"
           compile $ do
-            posts <- reverse <$> loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed"
+            posts <- reverse <$> loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body"
             indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) HTML
 
         when (enableDualOutput features) $ do
           match "static/logs.org" $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ do
-              posts <- reverse <$> (loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed" :: Compiler [Item String])
+              posts <- reverse <$> (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String])
               indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) MD
 
         -- Tags page
@@ -150,7 +150,7 @@ buildSite config =
           match "static/index.org" $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ do
-              posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasNoVersion .&&. complement "static/index.org")
+              posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasVersion "markdown" .&&. complement "static/index.org")
               let items = makeCombinedItems posts bibs []
               combinedListCompiler paths geocodingCache patterns tags items MD
 
@@ -166,7 +166,7 @@ buildSite config =
             match "static/photos.org" $ version "markdown" $ do
               route $ staticRoute `composeRoutes` setExtension "md"
               compile $ do
-                photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasNoVersion) :: Compiler [Item CopyFile])
+                photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasVersion "markdown") :: Compiler [Item CopyFile])
                 photosCompiler paths geocodingCache photos MD
 
         -- Bibliography sections

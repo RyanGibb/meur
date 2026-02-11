@@ -24,7 +24,7 @@ import Meur.Compiler.Tag (bibKindSingular)
 import Meur.Config (FeedConfiguration (..), Patterns (..))
 import Meur.Context (bibPageContext, combinedItemContext, combinedItemContextfield)
 import Meur.Pandoc (extractCitationKeys, readerOptions)
-import Meur.Types (BibKind (..), CombinedItem (..), FeedType (..))
+import Meur.Types (BibKind (..), CombinedItem (..), FeedType (..), Output (..))
 import Meur.Util (escapeString)
 import System.FilePath (normalise, takeDirectory, (</>))
 
@@ -92,7 +92,7 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
   let feedCombinedItemContext =
         contentField
           `mappend` listFieldWith "references" (referenceContext dateFormat bibs) referencesField
-          `mappend` combinedItemContext geocodingCache patterns tags dateFormat isoDateFormat isoDateFormat isoDateFormat
+          `mappend` combinedItemContext geocodingCache patterns tags dateFormat isoDateFormat isoDateFormat isoDateFormat HTML
           `mappend` updatedField
           `mappend` feedContext config
         where
