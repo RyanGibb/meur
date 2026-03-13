@@ -25,9 +25,8 @@ import Data.Time.Locale.Compat (defaultTimeLocale)
 import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDescription, feedRoot, feedTitle)
 import Meur.Bib (Bib)
 import qualified Meur.Bib
-import Meur.BibHakyll (bibContext, bibDate)
+import Meur.BibHakyll (bibDate)
 import Meur.Compiler.Feed (absolutizeUrls)
-import Meur.Compiler.Photo (photoContext)
 import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, getBibTitle, tagContext)
 import Meur.Config (FeedConfiguration, PathConfig, Patterns (..), defaultCslStyle, referencesFile)
 import Meur.Context (bibPageContext, combinedItemContext, indexContext, markdownTitleContext, photosContext, postContext)
@@ -69,7 +68,7 @@ makeBibItems bibs = do
   return $ L.sortBy (flip (comparing (bibDate . itemBody))) papers
 
 indexCompiler :: PathConfig -> Tags -> [Item a] -> Context a -> Output -> Compiler (Item String)
-indexCompiler pathConfig tags posts context output = do
+indexCompiler pathConfig _tags posts context output = do
   let refFile = referencesFile pathConfig
   let cslFile = defaultCslStyle pathConfig
   let baseCtx = indexContext posts context
@@ -90,7 +89,7 @@ postCompiler feedConfig pathConfig patterns tags template output =
       ctx = postContext patterns dateFormat dateFormat tags
    in case output of
         HTML -> do
-          getResourceBody
+          _ <- getResourceBody
             >>= saveSnapshot "body"
             >>= bibRenderFeed pathConfig cslFile refFile
             >>= absolutizeUrls feedConfig
@@ -193,11 +192,11 @@ tagCompiler pathConfig geocodingCache patterns tags tag pattern bibs output = do
   exists <- unsafeCompiler $ doesFileExist file
   if exists
     then do
-      item <- load $ fromFilePath file
-      item <-
-        applyAsTemplate ctx item
+      item' <- load $ fromFilePath file
+      item'' <-
+        applyAsTemplate ctx item'
           >>= bibRenderFn cslFile refFile
-      makeItem (itemBody item)
+      makeItem (itemBody item'')
         >>= loadAndApplyTemplate defaultTemplate ctx
         >>= relativizeUrls
     else do

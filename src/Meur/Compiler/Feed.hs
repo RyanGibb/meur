@@ -18,13 +18,12 @@ import Data.Time.Format (formatTime)
 import Data.Time.Locale.Compat (defaultTimeLocale)
 import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDescription, feedRoot, feedTitle)
 import Meur.Bib (Bib, bibsIndex, loadBibs)
-import qualified Meur.Bib
 import Meur.BibHakyll (bibContext, bibDate)
 import Meur.Compiler.Tag (bibKindSingular)
 import Meur.Config (FeedConfiguration (..), Patterns (..))
 import Meur.Context (bibPageContext, combinedItemContext, combinedItemContextfield)
 import Meur.Pandoc (extractCitationKeys, readerOptions)
-import Meur.Types (BibKind (..), CombinedItem (..), FeedType (..), Output (..))
+import Meur.Types (CombinedItem (..), FeedType (..), Output (..))
 import Meur.Util (escapeString)
 import System.FilePath (normalise, takeDirectory, (</>))
 
@@ -112,11 +111,13 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
             case c of
               EmptyField -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a boolField!"
               StringField str -> return $ applyEscape str
+              ListField _ _ -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a listField!"
           updatedField = field "updated" $ \i -> do
             c <- combinedItemContextfield geocodingCache patterns i "published" tags dateFormat isoDateFormat isoDateFormat isoDateFormat
             case c of
               EmptyField -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a boolField!"
               StringField str -> return str
+              ListField _ _ -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a listField!"
   items <- combinedItems
   let feedCtx =
         feedContext config
@@ -131,24 +132,24 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
                     )
           `mappend` listField "items" feedCombinedItemContext (return items)
           `mappend` missingField
-  loadAndApplyTemplate template feedCtx =<< makeItem ""
+  loadAndApplyTemplate template feedCtx =<< makeItem ("" :: String)
 
 absolutizeUrls :: FeedConfiguration -> Item String -> Compiler (Item String)
 absolutizeUrls config item = do
-  route <- getRoute $ itemIdentifier item
-  return $ case route of
+  itemRoute <- getRoute $ itemIdentifier item
+  return $ case itemRoute of
     Nothing -> item
     Just r -> fmap (withUrls (makeAbsolute r)) item
   where
     root = feedRoot config
 
     makeAbsolute :: FilePath -> String -> String
-    makeAbsolute route url
+    makeAbsolute itemRoute' url
       | "://" `T.isInfixOf` T.pack url = url
       | "mailto:" `T.isPrefixOf` T.pack url = url
       | "/" `L.isPrefixOf` url = root ++ url
       | otherwise =
-          let itemDir = takeDirectory route
+          let itemDir = takeDirectory itemRoute'
               resolvedPath = normalise $ itemDir </> url
               cleanPath =
                 if "./" `L.isPrefixOf` resolvedPath

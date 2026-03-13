@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 -- From: https://gitlab.sac-home.org/tema/artem-blog/-/blob/master/BibHakyll.hs
 -- A lof of the ideas are taken from:
@@ -7,37 +8,18 @@
 module Meur.BibHakyll where
 
 import Control.Applicative ((<|>))
-import Data.Binary
+import Data.Binary (Binary (..))
 import Data.Either (fromRight)
-import qualified Data.List as L
 import qualified Data.Text as T
-import Data.Time (UTCTime (UTCTime), defaultTimeLocale, formatTime, parseTimeM, parseTimeOrError)
+import Data.Time (UTCTime, defaultTimeLocale, formatTime, parseTimeM)
 import Data.Typeable (Typeable)
 import Hakyll
 import Meur.Bib
 import Text.Pandoc
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Citeproc
-import Text.Pandoc.Readers
-import Text.Pandoc.Walk (walk)
 import qualified Text.Pandoc.Walk as B
-import Text.Pandoc.Writers
 import Text.Parsec hiding ((<|>))
-
-instance Binary Meur.Bib.Entry where
-  put (Entry k v) = do
-    put k
-    put v
-
-  get = Entry <$> get <*> get
-
-instance Binary Bib where
-  put (Bib ty nm items) = do
-    put ty
-    put nm
-    put items
-
-  get = Bib <$> get <*> get <*> get
 
 instance Writable Bib where
   write file item = writeFile file (showBib $ itemBody item)
@@ -81,31 +63,31 @@ bibClsMarkdown = bibClsWith (writeMarkdown def)
 
 bibContext :: String -> String -> Context Bib
 bibContext csl dateFormat =
-  Context $ \key _ item -> do
+  Context $ \key' _ item -> do
     let b = itemBody item
-    let name = Meur.Bib.name b
+    let bibName = Meur.Bib.name b
     parsed <- unsafeCompiler $ bibCls csl b
     parsedMarkdown <- unsafeCompiler $ bibClsMarkdown csl b
-    let latexifyHtml' = fromRight (error "bibToContext for entry " <> name) . latexifyHtml
-    let latexifyPlain' = fromRight (error "bibToContext for entry " <> name) . latexifyPlain
+    let latexifyHtml' = fromRight (error "bibToContext for entry " <> bibName) . latexifyHtml
+    let latexifyPlain' = fromRight (error "bibToContext for entry " <> bibName) . latexifyPlain
     let str s = return $ StringField s
     let strPlain = str . latexifyPlain' :: String -> Compiler ContextField
     let strHtml = str . latexifyHtml' :: String -> Compiler ContextField
-    let lookup key = case bibIndex b key of
+    let bibLookup k = case bibIndex b k of
           Nothing ->
             noResult $
-              "No key " <> key <> " in bibitem " <> name
+              "No key " <> k <> " in bibitem " <> bibName
           Just x -> return x
-    case key of
-      "name" -> str name
+    case key' of
+      "name" -> str bibName
       "entrytype" -> str $ entrytype b
       "parsed" -> str parsed
       "mdParsed" -> str parsedMarkdown
-      "abstract" -> strHtml =<< lookup "abstract"
-      "mdAbstract" -> strPlain =<< lookup "abstract"
+      "abstract" -> strHtml =<< bibLookup "abstract"
+      "mdAbstract" -> strPlain =<< bibLookup "abstract"
       "bib" -> str (showBib $ filterKeys b ["parsed", "abstract", "addinfo", "date", "video", "slides", "tags"])
       x | x == "date" || x == "published" || x == "updated" -> str (formatTime defaultTimeLocale dateFormat (bibDate b))
-      _ -> strPlain =<< lookup key
+      _ -> strPlain =<< bibLookup key'
 
 bibDate :: Bib -> UTCTime
 bibDate b =
@@ -126,7 +108,7 @@ bibDate b =
       getDate :: Maybe UTCTime
       getDate =
         case bibIndex b "date" of
-          Just dateField -> tryParseDate (latexifyPlain' dateField)
+          Just dateVal -> tryParseDate (latexifyPlain' dateVal)
           Nothing ->
             case bibIndex b "year" of
               Just yearField ->
@@ -151,6 +133,7 @@ instance Writable Bibs where
     let Bibs bs = itemBody item
      in writeFile file $ showBibs bs
 
+parseBibFile :: String -> Bibs
 parseBibFile s = case parse parseBibs "" s of
   Right p -> Bibs p
   Left p -> error $ "Parse error: " <> show p

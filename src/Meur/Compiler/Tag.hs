@@ -16,12 +16,11 @@ module Meur.Compiler.Tag
 where
 
 import Data.Either (fromRight)
-import qualified Data.List as L
 import qualified Data.Map as M
 import qualified Data.Set as S
 import qualified Data.Text as T
 import Hakyll
-import Meur.Bib (Bib, bibIndex, name)
+import Meur.Bib (Bib, bibIndex)
 import qualified Meur.Bib
 import Meur.BibHakyll (latexifyPlain)
 import Meur.Types (BibKind (..))

@@ -76,12 +76,12 @@ exifMetadata item = do
   return $ fromRight M.empty exifData
 
 exifField :: String -> ExifTag -> (ExifValue -> String) -> Context a
-exifField key tag print =
+exifField key tag fmt =
   field key $ \item -> do
     metadata <- exifMetadata item
     case M.lookup tag metadata of
       Nothing -> noResult ""
-      Just value -> return $ print value
+      Just value -> return $ fmt value
 
 exifLatField :: String -> Context a
 exifLatField key =

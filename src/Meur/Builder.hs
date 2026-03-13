@@ -4,10 +4,8 @@
 module Meur.Builder (buildSite) where
 
 import Control.Monad (filterM, forM_, when)
-import Data.Maybe (isJust)
 import qualified Data.Text as T
 import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDescription, feedRoot, feedTitle)
-import Hakyll.Core.Configuration (Configuration (..), defaultConfiguration)
 import Meur.Bib (name)
 import Meur.BibHakyll (Bibs (..), bibContext, bibFileCompiler, parseBibFile)
 import Meur.Compiler.Feed (combinedFeedCompiler)
@@ -18,7 +16,6 @@ import Meur.Context (markdownTitleContext, postContext)
 import Meur.Types (BibKind (..), FeedType (..), Output (..))
 import Meur.Util (isNotDraft, isNotDraftMeta, isPublished)
 import System.FilePath ((</>))
-import System.Process (callCommand)
 
 buildSite :: SiteConfig -> IO ()
 buildSite config =

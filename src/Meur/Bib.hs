@@ -4,6 +4,7 @@
 
 module Meur.Bib where
 
+import Data.Binary
 import Data.List
 import Data.Text (pack, toLower, unpack)
 import Data.Typeable
@@ -16,6 +17,12 @@ data Entry = Entry
   }
   deriving (Show, Typeable)
 
+instance Binary Entry where
+  put (Entry k v) = do
+    put k
+    put v
+  get = Entry <$> get <*> get
+
 -- Not trying to be smart in understanding
 -- semantics of bib files.
 data Bib = Bib
@@ -24,6 +31,13 @@ data Bib = Bib
     entries :: [Entry]
   }
   deriving (Show, Typeable)
+
+instance Binary Bib where
+  put (Bib ty nm items) = do
+    put ty
+    put nm
+    put items
+  get = Bib <$> get <*> get <*> get
 
 -- Normalise key to lowercase for now.
 normaliseKey :: String -> String
@@ -64,7 +78,7 @@ parseVal b = (("{" <>) . (<> "}") <$> recurse) <|> terminal b
 
 parseComment :: Parser ()
 parseComment = do
-  try (string "/*")
+  _ <- try (string "/*")
   rest
   where
     rest :: Parser ()
@@ -74,6 +88,7 @@ parseComment = do
         <|> (char '*' >> rest)
         <|> (anyChar >> rest)
 
+ws :: Parser ()
 ws = spaces >> skipMany (parseComment >> spaces)
 
 -- Make the key lowercase, just to normalise it to something.
@@ -90,12 +105,12 @@ parseEntry = do
 parseBib :: Parser Bib
 parseBib = do
   bib <- char '@' *> manyTill anyChar (char '{')
-  name <- manyTill anyChar (char ',')
+  bibName <- manyTill anyChar (char ',')
   spaces
   ents <- parseEntry `sepEndBy` (char ',' <* ws)
-  char '}'
+  _ <- char '}'
   ws
-  return $ Bib bib (normaliseKey name) ents
+  return $ Bib bib (normaliseKey bibName) ents
 
 parseBibs :: Parser [Bib]
 parseBibs = ws *> many (parseBib <* ws) <* eof
@@ -109,14 +124,14 @@ loadBibs path = do
     Left p -> Left $ "Parse error: " <> show p
 
 bibIndex :: Bib -> String -> Maybe String
-bibIndex (Bib ty name items) kk = value <$> safeHead filtered
+bibIndex (Bib _ty _name items) kk = value <$> safeHead filtered
   where
     safeHead [] = Nothing
     safeHead (x : _) = Just x
     filtered = filter (\e -> key e == normaliseKey kk) items
 
 filterKeys :: Bib -> [String] -> Bib
-filterKeys (Bib ty name items) keys = Bib ty name filtered
+filterKeys (Bib ty nm items) keys = Bib ty nm filtered
   where
     filtered = filter (\e -> key e `notElem` keys) items
 
@@ -128,8 +143,8 @@ mapEntriesIfKey p f = fmap (\e@(Entry k v) -> if p k then Entry k (f v) else e)
 
 bibsIndex :: [Bib] -> String -> Maybe Bib
 bibsIndex [] _ = Nothing
-bibsIndex (b : xs) k | normaliseKey k == name b = return b
-bibsIndex (b : xs) k = bibsIndex xs k
+bibsIndex (b : _) k | normaliseKey k == name b = return b
+bibsIndex (_ : xs) k = bibsIndex xs k
 
 #if 0
 main = do

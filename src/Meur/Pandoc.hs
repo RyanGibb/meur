@@ -69,7 +69,7 @@ bibRenderHtml pathConfig cslFileName bibFileName pandoc = do
   renderPandocItemWithTransformM readerOptions writerOptions transform pandoc
 
 bibRenderMarkdown :: PathConfig -> String -> String -> Item String -> Compiler (Item String)
-bibRenderMarkdown pathConfig cslFileName bibFileName pandoc = do
+bibRenderMarkdown _pathConfig cslFileName bibFileName pandoc = do
   csl <- load $ fromFilePath cslFileName
   bib <- load $ fromFilePath bibFileName
   let transform =
@@ -108,20 +108,20 @@ bibRenderFeed pathConfig cslFileName bibFileName pandoc = do
 
 -- | Apply Pandoc Lua filters from the scripts directory
 pandocTransform :: FilePath -> [FilePath] -> Pandoc -> Compiler Pandoc
-pandocTransform scriptsDir filters =
+pandocTransform dir filters =
   unsafeCompiler
     . runIOorExplode
-    . applyFilters scriptsDir filters
+    . applyLuaFilters dir filters
 
 pandocTransformFeed :: FilePath -> [FilePath] -> Pandoc -> Compiler Pandoc
-pandocTransformFeed scriptsDir filters =
+pandocTransformFeed dir filters =
   unsafeCompiler
     . runIOorExplode
-    . applyFilters scriptsDir filters
+    . applyLuaFilters dir filters
 
 -- | Chain multiple Lua filters together
-applyFilters :: FilePath -> [FilePath] -> Pandoc -> PandocIO Pandoc
-applyFilters scriptsDir filters = foldr (>=>) return $ map (\f -> applyFilter def [] (scriptsDir </> f)) filters
+applyLuaFilters :: FilePath -> [FilePath] -> Pandoc -> PandocIO Pandoc
+applyLuaFilters dir filters = foldr (>=>) return $ map (\f -> applyFilter def [] (dir </> f)) filters
 
 rewriteLinksInPandoc :: (T.Text -> T.Text) -> Pandoc -> Pandoc
 rewriteLinksInPandoc replacer = walk rewriteLink

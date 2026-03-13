@@ -19,7 +19,6 @@ where
 
 import qualified Data.List as L
 import Data.Maybe (fromMaybe)
-import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Time.Format (formatTime, parseTimeM)
 import Data.Time.Locale.Compat (defaultTimeLocale)
@@ -35,7 +34,7 @@ import Meur.Util (dateFromTitle)
 import System.FilePath (replaceExtension, takeBaseName)
 
 postContext :: Patterns -> String -> String -> Tags -> Context String
-postContext patterns titleDateFormat postDateFormat tags =
+postContext patterns titleDateFormat postDateFormat _tags =
   field "htmlPrev" (adjacentLogFieldHtml (logFiles patterns) (-1) postDateFormat)
     `mappend` field "htmlNext" (adjacentLogFieldHtml (logFiles patterns) 1 postDateFormat)
     `mappend` field "mdPrev" (adjacentLogFieldMarkdown (logFiles patterns) (-1) postDateFormat)
@@ -48,7 +47,7 @@ postContext patterns titleDateFormat postDateFormat tags =
     `mappend` markdownTitleContext
 
 bibPageContext :: String -> String -> Tags -> Context Bib
-bibPageContext csl dateFormat' tags =
+bibPageContext csl dateFormat' _tags =
   bibTagsField "tags"
     `mappend` bibContext csl dateFormat'
 

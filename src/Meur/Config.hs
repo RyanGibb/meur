@@ -31,12 +31,9 @@ module Meur.Config
 where
 
 import Data.Aeson
-import Data.Maybe (fromMaybe, isJust)
-import qualified Data.Text as T
 import Data.Yaml (decodeFileEither)
 import GHC.Generics
 import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDescription, feedRoot, feedTitle)
-import qualified Hakyll as H
 
 -- | Main site configuration loaded from site.yaml
 data SiteConfig = SiteConfig
@@ -192,7 +189,10 @@ defaultPathConfig =
       scriptsDir = "scripts",
       photosPattern = "static/photos/*",
       bibliographies = [],
-      referencesFile = "references.bib"
+      referencesFile = "references.bib",
+      defaultCslStyle = "ieee-with-url.csl",
+      luaFilters = ["org-keywords.lua", "elem-ids.lua", "footnote-commas.lua", "anchor-links.lua"],
+      luaFiltersFeed = ["org-keywords.lua"]
     }
 
 -- | Default date formats

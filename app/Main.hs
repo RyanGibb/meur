@@ -1,7 +1,7 @@
 module Main where
 
 import Meur.Builder (buildSite)
-import Meur.Config (SiteConfig, cacheDir, loadConfig, outputDir, sitePaths)
+import Meur.Config (SiteConfig, loadConfig)
 import System.Directory (doesFileExist)
 import System.Exit (exitFailure)
 import System.IO (hPutStrLn, stderr)
