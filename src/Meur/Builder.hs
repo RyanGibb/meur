@@ -53,7 +53,7 @@ buildSite config =
         let bibs = map (Paper,) paperBibs ++ map (Talk,) talkBibs
 
         -- Build tags
-        postTags <- buildTags (postFiles patterns) (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
+        postTags <- buildTags (postFiles patterns .&&. hasNoVersion) (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
         let bibTags = buildBibTags bibs (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
         let tags = mergeTags postTags bibTags
 
@@ -212,6 +212,11 @@ buildSite config =
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ postCompiler feedConfig paths patterns tags "templates/post.md" MD
 
+        -- Drafts need compilers to be in Hakyll's universe for stable tag dependencies.
+        matchMetadata (articleFiles patterns) (not . isNotDraftMeta) $
+          compile $
+            getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
+
         -- Logs
         matchMetadata (logFiles patterns) isNotDraftMeta $ do
           route $ staticRoute `composeRoutes` setExtension "html"
@@ -221,6 +226,10 @@ buildSite config =
           matchMetadata (logFiles patterns) isNotDraftMeta $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ postCompiler feedConfig paths patterns tags "templates/log.md" MD
+
+        matchMetadata (logFiles patterns) (not . isNotDraftMeta) $
+          compile $
+            getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
 
         -- Feeds
         when (enableFeeds features) $ do
