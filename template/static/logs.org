@@ -28,14 +28,14 @@ $if(html)$
 <ul class="pages">
     $for(pages)$
     <li>
-        <a href="$url$">$published$</a>
+        <a href="$url$">$title$</a>
     </li>
     $endfor$
 </ul>
 #+end_export
 $else$
 #+begin_export markdown
-$for(pages)$- [$published$]($url$)
+$for(pages)$- [$title$]($url$)
 $endfor$
 #+end_export
 $endif$

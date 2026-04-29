@@ -39,7 +39,7 @@ postContext patterns titleDateFormat postDateFormat _tags =
     `mappend` field "htmlNext" (adjacentLogFieldHtml (logFiles patterns) 1 postDateFormat)
     `mappend` field "mdPrev" (adjacentLogFieldMarkdown (logFiles patterns) (-1) postDateFormat)
     `mappend` field "mdNext" (adjacentLogFieldMarkdown (logFiles patterns) 1 postDateFormat)
-    `mappend` dateFieldFromTitle "title" titleDateFormat
+    `mappend` dateFieldFromTitleWithMetadata "title" titleDateFormat
     `mappend` dateField "published" postDateFormat
     `mappend` myDateField "updated" postDateFormat
     `mappend` pageTagsField "tags"
@@ -76,6 +76,18 @@ dateFieldFromTitle key format =
       Nothing -> noResult ""
       Just date ->
         return $ formatTime defaultTimeLocale format date
+
+dateFieldFromTitleWithMetadata :: String -> String -> Context String
+dateFieldFromTitleWithMetadata key format =
+  field key $ \item ->
+    case dateFromTitle item of
+      Nothing -> noResult ""
+      Just date -> do
+        metadata <- getMetadata (itemIdentifier item)
+        let formattedDate = formatTime defaultTimeLocale format date
+        return $ case lookupString "title" metadata of
+          Just t  -> formattedDate ++ " " ++ t
+          Nothing -> formattedDate
 
 indexContext :: [Item a] -> Context a -> Context String
 indexContext pages itemContext =
