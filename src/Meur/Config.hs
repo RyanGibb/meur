@@ -67,7 +67,11 @@ data PathConfig = PathConfig
     referencesFile :: FilePath,
     defaultCslStyle :: FilePath,
     luaFilters :: [FilePath],
-    luaFiltersFeed :: [FilePath]
+    luaFiltersFeed :: [FilePath],
+    -- | Globs (relative to the project root) whose files are copied verbatim
+    -- but never compiled as pages. Useful when a prebuilt @.html@ file sits
+    -- next to a @.md@/@.org@ source that should not be rendered as a page.
+    ignorePatterns :: [String]
   }
   deriving (Show, Generic)
 
@@ -154,6 +158,7 @@ instance FromJSON PathConfig where
       <*> v .:? "defaultCslStyle" .!= "ieee-with-url.csl"
       <*> v .:? "luaFilters" .!= ["org-keywords.lua", "elem-ids.lua", "footnote-commas.lua", "anchor-links.lua"]
       <*> v .:? "luaFiltersFeed" .!= ["org-keywords.lua"]
+      <*> v .:? "ignorePatterns" .!= []
 
 instance FromJSON BibConfig where
   parseJSON = withObject "BibConfig" $ \v ->
@@ -192,7 +197,8 @@ defaultPathConfig =
       referencesFile = "references.bib",
       defaultCslStyle = "ieee-with-url.csl",
       luaFilters = ["org-keywords.lua", "elem-ids.lua", "footnote-commas.lua", "anchor-links.lua"],
-      luaFiltersFeed = ["org-keywords.lua"]
+      luaFiltersFeed = ["org-keywords.lua"],
+      ignorePatterns = []
     }
 
 -- | Default date formats
@@ -272,7 +278,13 @@ buildPatterns paths =
           .||. fromGlob (static ++ "/technology.org")
           .||. fromGlob (static ++ "/self-hosting.org")
           .||. fromGlob (static ++ "/citable.org")
-      htmlPatterns = fromGlob (static ++ "/**.md") .||. fromGlob (static ++ "/**.org")
+      -- Exclude ignored globs from page compilation. Everything that selects
+      -- pages to render derives from htmlPatterns, so subtracting here keeps
+      -- ignored files out of posts, articles, logs, and index listings while
+      -- copyFiles still copies them (and any sibling assets) verbatim.
+      ignored = foldr ((.&&.) . complement . fromGlob) mempty (ignorePatterns paths)
+      htmlPatterns =
+        (fromGlob (static ++ "/**.md") .||. fromGlob (static ++ "/**.org")) .&&. ignored
       postPatterns = htmlPatterns .&&. complement indexPatterns .&&. complement tagPatterns
       photoPatterns = fromGlob $ photosPattern paths
       paperPatterns = "papers/*.html"
