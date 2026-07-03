@@ -10,6 +10,9 @@ $-for(papers)$
         <a href="#$name$" class="anchor" aria-hidden="true">§</a>
         <a href="/papers/$name$.html">$title$</a>
     </h3>
+    $-if(subtitle)$
+    <p><em>$subtitle$</em></p>
+    $-endif$
     $parsed$
     <a href="/papers/$name$.pdf">PDF</a>
     $-if(url)$ <a href="$url$">URL</a> $-endif$
@@ -21,6 +24,9 @@ $else$
 #+begin_export markdown
 $-for(papers)$
 ### $title$
+$-if(subtitle)$
+*$subtitle$*
+$-endif$
 $mdParsed$
 [PDF](/papers/$name$.pdf)$if(url)$ | [URL]($url$)$endif$ | [BibTeX](/papers/$name$.bib)
 $-endfor$

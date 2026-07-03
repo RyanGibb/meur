@@ -27,7 +27,7 @@ import Meur.Bib (Bib)
 import qualified Meur.Bib
 import Meur.BibHakyll (bibDate)
 import Meur.Compiler.Feed (absolutizeUrls)
-import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, getBibTitle, tagContext)
+import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, getBibSubtitle, getBibTitle, tagContext)
 import Meur.Config (FeedConfiguration, PathConfig, Patterns (..), defaultCslStyle, referencesFile)
 import Meur.Context (bibPageContext, combinedItemContext, indexContext, markdownTitleContext, photosContext, postContext)
 import Meur.Pandoc (bibRenderFeed, bibRenderHtml, bibRenderMarkdown)
@@ -142,6 +142,7 @@ bibCompiler kind b tags output =
             >>= loadAndApplyTemplate
               template
               ( constField "title" (getBibTitle b)
+                  `mappend` maybe mempty (constField "subtitle") (getBibSubtitle b)
                   `mappend` constField "markdown" (bibKindPlural kind ++ "/" ++ Meur.Bib.name b ++ ".md")
                   `mappend` markdownTitleContext
               )

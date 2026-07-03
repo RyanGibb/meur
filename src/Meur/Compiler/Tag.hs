@@ -5,6 +5,7 @@ module Meur.Compiler.Tag
     mergeTags,
     getBibTags,
     getBibTitle,
+    getBibSubtitle,
     bibHasTag,
     bibKindPlural,
     bibKindSingular,
@@ -69,6 +70,11 @@ getBibTitle :: Bib -> String
 getBibTitle bib = do
   let n = Meur.Bib.name bib
   maybe n (fromRight (error "bibToContext for entry " <> n) . latexifyPlain) (bibIndex bib "title")
+
+getBibSubtitle :: Bib -> Maybe String
+getBibSubtitle bib = do
+  let n = Meur.Bib.name bib
+  fromRight (error "getBibSubtitle for entry " <> n) . latexifyPlain <$> bibIndex bib "subtitle"
 
 bibHasTag :: String -> Bib -> Bool
 bibHasTag tag bib = tag `elem` getBibTags bib
