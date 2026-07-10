@@ -115,14 +115,14 @@ buildSite config =
         match "static/logs.org" $ do
           route $ staticRoute `composeRoutes` setExtension "html"
           compile $ do
-            posts <- reverse <$> loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body"
+            posts <- reverse <$> (filterM isNotDraft =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body")
             indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) HTML
 
         when (enableDualOutput features) $ do
           match "static/logs.org" $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ do
-              posts <- reverse <$> (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String])
+              posts <- reverse <$> (filterM isNotDraft =<< (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
               indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) MD
 
         -- Tags page

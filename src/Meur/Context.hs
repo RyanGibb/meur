@@ -17,6 +17,7 @@ module Meur.Context
   )
 where
 
+import Control.Monad (filterM)
 import qualified Data.List as L
 import Data.Maybe (fromMaybe)
 import Data.Time (UTCTime)
@@ -30,7 +31,7 @@ import Meur.Compiler.Photo (photoContext)
 import Meur.Compiler.Tag (bibKindPlural, bibKindSingular, bibTagsField, pageTagsField)
 import Meur.Config (Patterns (..))
 import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
-import Meur.Util (dateFromTitle)
+import Meur.Util (dateFromTitle, isNotDraft)
 import System.FilePath (replaceExtension, takeBaseName)
 
 postContext :: Patterns -> String -> String -> Tags -> Context String
@@ -133,7 +134,7 @@ combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat 
 
 adjacentLogFieldHtml :: Pattern -> Int -> String -> Item String -> Compiler String
 adjacentLogFieldHtml logPattern offset format item = do
-  posts <- loadAllSnapshots (logPattern .&&. hasNoVersion) "body" :: Compiler [Item String]
+  posts <- (filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasNoVersion) "body" :: Compiler [Item String]))
   let adjacent = getAdjacentLog posts item offset
   case adjacent of
     Nothing -> noResult ""
@@ -147,7 +148,7 @@ adjacentLogFieldHtml logPattern offset format item = do
 
 adjacentLogFieldMarkdown :: Pattern -> Int -> String -> Item String -> Compiler String
 adjacentLogFieldMarkdown logPattern offset format item = do
-  posts <- loadAllSnapshots (logPattern .&&. hasVersion "markdown") "body" :: Compiler [Item String]
+  posts <- (filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
   let adjacent = getAdjacentLog posts item offset
   case adjacent of
     Nothing -> noResult ""
