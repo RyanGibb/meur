@@ -5,6 +5,9 @@ module Meur.Util
     escapeString,
     -- Date utilities
     dateFromTitle,
+    isMonthTitle,
+    itemUTC,
+    recentFirstT,
     -- URL utilities
     replaceExt,
     generateId,
@@ -15,8 +18,11 @@ module Meur.Util
   )
 where
 
+import Control.Applicative ((<|>))
 import Data.Char (isAlphaNum)
-import Data.Maybe (isJust)
+import Data.List (sortBy)
+import Data.Maybe (isJust, isNothing)
+import Data.Ord (Down (..), comparing)
 import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Time.Format (parseTimeM)
@@ -45,6 +51,27 @@ dateFromTitle item =
   let filePath = toFilePath (itemIdentifier item)
       title = takeBaseName filePath
    in parseTimeM True defaultTimeLocale "%Y-%m-%d" title
+        <|> parseTimeM True defaultTimeLocale "%Y-%m" title
+
+-- | True when the title encodes a month (@YYYY-MM@) rather than a date (@YYYY-MM-DD@).
+isMonthTitle :: Item a -> Bool
+isMonthTitle item =
+  let title = takeBaseName (toFilePath (itemIdentifier item))
+      asDay = parseTimeM True defaultTimeLocale "%Y-%m-%d" title :: Maybe UTCTime
+      asMonth = parseTimeM True defaultTimeLocale "%Y-%m" title :: Maybe UTCTime
+   in isNothing asDay && isJust asMonth
+
+-- | 'Hakyll.getItemUTC' supporting @YYYY-MM@ filenames.
+itemUTC :: (MonadMetadata m, MonadFail m) => Item a -> m UTCTime
+itemUTC item
+  | isMonthTitle item, Just t <- dateFromTitle item = return t
+  | otherwise = getItemUTC defaultTimeLocale (itemIdentifier item)
+
+-- | 'Hakyll.recentFirst' supporting @YYYY-MM@ filenames.
+recentFirstT :: (MonadMetadata m, MonadFail m) => [Item a] -> m [Item a]
+recentFirstT items = do
+  tagged <- mapM (\i -> (\t -> (i, t)) <$> itemUTC i) items
+  return $ map fst $ sortBy (comparing (Down . snd)) tagged
 
 replaceExt :: T.Text -> T.Text -> T.Text -> T.Text
 replaceExt oldExt newExt url =

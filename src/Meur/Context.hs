@@ -31,7 +31,7 @@ import Meur.Compiler.Photo (photoContext)
 import Meur.Compiler.Tag (bibKindPlural, bibKindSingular, bibTagsField, pageTagsField)
 import Meur.Config (Patterns (..))
 import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
-import Meur.Util (dateFromTitle, isNotDraft)
+import Meur.Util (dateFromTitle, isMonthTitle, isNotDraft, itemUTC, recentFirstT)
 import System.FilePath (replaceExtension, takeBaseName)
 
 postContext :: Patterns -> String -> String -> Tags -> Context String
@@ -41,7 +41,7 @@ postContext patterns titleDateFormat postDateFormat _tags =
     `mappend` field "mdPrev" (adjacentLogFieldMarkdown (logFiles patterns) (-1) postDateFormat)
     `mappend` field "mdNext" (adjacentLogFieldMarkdown (logFiles patterns) 1 postDateFormat)
     `mappend` dateFieldFromTitleWithMetadata "title" titleDateFormat
-    `mappend` dateField "published" postDateFormat
+    `mappend` publishedField "published" postDateFormat
     `mappend` myDateField "updated" postDateFormat
     `mappend` pageTagsField "tags"
     `mappend` teaserField "teaser" "teaser"
@@ -70,13 +70,24 @@ myDateField name format =
       Nothing -> noResult ""
       Just d -> return $ formatTime defaultTimeLocale format d
 
+logDateFormat :: Item a -> String -> String
+logDateFormat item dayFormat
+  | isMonthTitle item = "%B %Y"
+  | otherwise = dayFormat
+
+-- | Like Hakyll's 'dateField' but resolves the timestamp via 'itemUTC', so
+-- monthly logs (@YYYY-MM@) — which Hakyll's 'getItemUTC' can't parse — work.
+publishedField :: String -> String -> Context a
+publishedField name format =
+  field name $ \item -> formatTime defaultTimeLocale format <$> itemUTC item
+
 dateFieldFromTitle :: String -> String -> Context String
 dateFieldFromTitle key format =
   field key $ \item ->
     case dateFromTitle item of
       Nothing -> noResult ""
       Just date ->
-        return $ formatTime defaultTimeLocale format date
+        return $ formatTime defaultTimeLocale (logDateFormat item format) date
 
 dateFieldFromTitleWithMetadata :: String -> String -> Context String
 dateFieldFromTitleWithMetadata key format =
@@ -85,7 +96,7 @@ dateFieldFromTitleWithMetadata key format =
       Nothing -> noResult ""
       Just date -> do
         metadata <- getMetadata (itemIdentifier item)
-        let formattedDate = formatTime defaultTimeLocale format date
+        let formattedDate = formatTime defaultTimeLocale (logDateFormat item format) date
         return $ case lookupString "title" metadata of
           Just t  -> formattedDate ++ " " ++ t
           Nothing -> formattedDate
@@ -134,7 +145,7 @@ combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat 
 
 adjacentLogFieldHtml :: Pattern -> Int -> String -> Item String -> Compiler String
 adjacentLogFieldHtml logPattern offset format item = do
-  posts <- (filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasNoVersion) "body" :: Compiler [Item String]))
+  posts <- reverse <$> (recentFirstT =<< filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasNoVersion) "body" :: Compiler [Item String]))
   let adjacent = getAdjacentLog posts item offset
   case adjacent of
     Nothing -> noResult ""
@@ -142,13 +153,13 @@ adjacentLogFieldHtml logPattern offset format item = do
       mroute <- getRoute (itemIdentifier a)
       let filePath = toFilePath (itemIdentifier item)
           title = takeBaseName filePath
-          date = fmap (formatTime defaultTimeLocale format) (dateFromTitle a)
+          date = fmap (formatTime defaultTimeLocale (logDateFormat a format)) (dateFromTitle a)
           label = fromMaybe title date
       return $ maybe "" (\r -> "<a href=\"" ++ r ++ "\">" ++ label ++ "</a>") mroute
 
 adjacentLogFieldMarkdown :: Pattern -> Int -> String -> Item String -> Compiler String
 adjacentLogFieldMarkdown logPattern offset format item = do
-  posts <- (filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
+  posts <- reverse <$> (recentFirstT =<< filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
   let adjacent = getAdjacentLog posts item offset
   case adjacent of
     Nothing -> noResult ""
@@ -156,7 +167,7 @@ adjacentLogFieldMarkdown logPattern offset format item = do
       mroute <- getRoute (itemIdentifier a)
       let filePath = toFilePath (itemIdentifier item)
           title = takeBaseName filePath
-          date = fmap (formatTime defaultTimeLocale format) (dateFromTitle a)
+          date = fmap (formatTime defaultTimeLocale (logDateFormat a format)) (dateFromTitle a)
           label = fromMaybe title date
       return $ maybe "" (\r -> "[" ++ label ++ "](" ++ toUrl r ++ ")") mroute
 

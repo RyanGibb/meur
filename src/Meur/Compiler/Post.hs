@@ -32,7 +32,7 @@ import Meur.Config (FeedConfiguration, PathConfig, Patterns (..), defaultCslStyl
 import Meur.Context (bibPageContext, combinedItemContext, indexContext, markdownTitleContext, photosContext, postContext)
 import Meur.Pandoc (bibRenderFeed, bibRenderHtml, bibRenderMarkdown)
 import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
-import Meur.Util (isPublished)
+import Meur.Util (isPublished, itemUTC, recentFirstT)
 import System.Directory (doesFileExist)
 import System.FilePath (replaceExtension)
 
@@ -50,7 +50,7 @@ makeCombinedItems posts bibs photos = do
 getCombinedItemUTC :: (MonadMetadata m, MonadFail m) => Item CombinedItem -> m UTCTime
 getCombinedItemUTC combinedItem =
   case itemBody combinedItem of
-    PostItem item -> getItemUTC defaultTimeLocale (itemIdentifier item)
+    PostItem item -> itemUTC item
     BibItem _ bib -> return $ bibDate bib
     PhotoItem item -> getItemUTC defaultTimeLocale (itemIdentifier item)
 
@@ -175,7 +175,7 @@ tagCompiler pathConfig geocodingCache patterns tags tag pattern bibs output = do
   let refFile = referencesFile pathConfig
   let cslFile = defaultCslStyle pathConfig
   let dateFormat = "%-d %b. %Y"
-  posts <- recentFirst =<< filterM isPublished =<< loadAll pattern
+  posts <- recentFirstT =<< filterM isPublished =<< loadAll pattern
   let filteredBibs = filter (\(_, bib) -> bibHasTag tag bib) bibs
   let combinedItems = combinedItemRecentFirst =<< makeCombinedItems posts filteredBibs []
   let filename = T.unpack $ T.toLower $ T.pack tag

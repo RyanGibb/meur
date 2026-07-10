@@ -24,13 +24,13 @@ import Meur.Config (FeedConfiguration (..), Patterns (..))
 import Meur.Context (bibPageContext, combinedItemContext, combinedItemContextfield)
 import Meur.Pandoc (extractCitationKeys, readerOptions)
 import Meur.Types (CombinedItem (..), FeedType (..), Output (..))
-import Meur.Util (escapeString)
+import Meur.Util (escapeString, itemUTC)
 import System.FilePath (normalise, takeDirectory, (</>))
 
 getCombinedItemUTC :: (MonadMetadata m, MonadFail m) => Item CombinedItem -> m UTCTime
 getCombinedItemUTC combinedItem =
   case itemBody combinedItem of
-    PostItem item -> getItemUTC defaultTimeLocale (itemIdentifier item)
+    PostItem item -> itemUTC item
     BibItem _ bib -> return $ bibDate bib
     PhotoItem item -> getItemUTC defaultTimeLocale (itemIdentifier item)
 

@@ -288,7 +288,8 @@ buildPatterns paths =
       postPatterns = htmlPatterns .&&. complement indexPatterns .&&. complement tagPatterns
       photoPatterns = fromGlob $ photosPattern paths
       paperPatterns = "papers/*.html"
-      logPatterns = fromRegex $ static ++ "/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9].*"
+      -- Weekly logs are @YYYY-MM-DD.org@; monthly logs are @YYYY-MM.org@.
+      logPatterns = fromRegex $ static ++ "/[0-9][0-9][0-9][0-9]-[0-9][0-9](-[0-9][0-9])?\\..*"
       articlePatterns = postPatterns .&&. complement logPatterns
       copyPatterns = fromGlob (static ++ "/**") .&&. complement tagPatterns
    in Patterns

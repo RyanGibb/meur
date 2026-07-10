@@ -14,7 +14,7 @@ import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, buildBibTag
 import Meur.Config
 import Meur.Context (markdownTitleContext, postContext)
 import Meur.Types (BibKind (..), FeedType (..), Output (..))
-import Meur.Util (isNotDraft, isNotDraftMeta, isPublished)
+import Meur.Util (isNotDraft, isNotDraftMeta, isPublished, recentFirstT)
 import System.FilePath ((</>))
 
 buildSite :: SiteConfig -> IO ()
@@ -73,7 +73,7 @@ buildSite config =
                   create [fromCapture pat . T.unpack . T.toLower . T.pack $ tag] $ do
                     route idRoute
                     compile $ do
-                      posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "body"
+                      posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "body"
                       let taggedBibs = filter (\(_, bib) -> bibHasTag tag bib) bibs
                       let items = combinedItemRecentFirst =<< makeCombinedItems posts taggedBibs []
                       combinedFeedCompiler feedtype feedConfig geocodingCache patterns dateFormat isoDateFormat tags (referencesFile paths) items
@@ -115,14 +115,14 @@ buildSite config =
         match "static/logs.org" $ do
           route $ staticRoute `composeRoutes` setExtension "html"
           compile $ do
-            posts <- reverse <$> (filterM isNotDraft =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body")
+            posts <- recentFirstT =<< (filterM isNotDraft =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body")
             indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) HTML
 
         when (enableDualOutput features) $ do
           match "static/logs.org" $ version "markdown" $ do
             route $ staticRoute `composeRoutes` setExtension "md"
             compile $ do
-              posts <- reverse <$> (filterM isNotDraft =<< (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
+              posts <- recentFirstT =<< (filterM isNotDraft =<< (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
               indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) MD
 
         -- Tags page
@@ -245,7 +245,7 @@ buildSite config =
             posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "feed"
             makeCombinedItems posts [] []
           createFeed "logs" $ do
-            posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed"
+            posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed"
             makeCombinedItems posts [] []
           when (enableBibliography features) $ do
             createFeed "papers" $ makeCombinedItems [] (map (Paper,) paperBibs) []
