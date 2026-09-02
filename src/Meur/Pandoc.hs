@@ -40,7 +40,8 @@ writerOptions =
   def
     { writerExtensions = enableExtension Ext_smart pandocExtensions,
       writerHighlightStyle = Just pygments,
-      writerCiteMethod = Citeproc
+      writerCiteMethod = Citeproc,
+      writerHTMLMathMethod = MathML
     }
 
 markdownWriterOptions :: WriterOptions
