@@ -2,6 +2,7 @@
 
 module Meur.Context
   ( postContext,
+    adjacentLogContext,
     bibPageContext,
     markdownTitleContext,
     markdownField,
@@ -17,7 +18,6 @@ module Meur.Context
   )
 where
 
-import Control.Monad (filterM)
 import qualified Data.List as L
 import Data.Maybe (fromMaybe)
 import Data.Time (UTCTime)
@@ -29,18 +29,13 @@ import qualified Meur.Bib
 import Meur.BibHakyll (bibContext)
 import Meur.Compiler.Photo (photoContext)
 import Meur.Compiler.Tag (bibKindPlural, bibKindSingular, bibTagsField, pageTagsField)
-import Meur.Config (Patterns (..))
 import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
-import Meur.Util (dateFromTitle, isMonthTitle, isNotDraft, itemUTC, recentFirstT)
+import Meur.Util (dateFromTitle, isMonthTitle, itemUTC)
 import System.FilePath (replaceExtension, takeBaseName)
 
-postContext :: Patterns -> String -> String -> Tags -> Context String
-postContext patterns titleDateFormat postDateFormat _tags =
-  field "htmlPrev" (adjacentLogFieldHtml (logFiles patterns) (-1) postDateFormat)
-    `mappend` field "htmlNext" (adjacentLogFieldHtml (logFiles patterns) 1 postDateFormat)
-    `mappend` field "mdPrev" (adjacentLogFieldMarkdown (logFiles patterns) (-1) postDateFormat)
-    `mappend` field "mdNext" (adjacentLogFieldMarkdown (logFiles patterns) 1 postDateFormat)
-    `mappend` dateFieldFromTitleWithMetadata "title" titleDateFormat
+postContext :: String -> String -> Tags -> Context String
+postContext titleDateFormat postDateFormat _tags =
+  dateFieldFromTitleWithMetadata "title" titleDateFormat
     `mappend` publishedField "published" postDateFormat
     `mappend` myDateField "updated" postDateFormat
     `mappend` pageTagsField "tags"
@@ -111,17 +106,17 @@ photosContext geocodingCache dateFormat photos =
   listField "photos" (photoContext geocodingCache dateFormat) (return photos)
     `mappend` markdownTitleContext
 
-combinedItemContextfield :: Maybe FilePath -> Patterns -> Item CombinedItem -> String -> Tags -> String -> String -> String -> String -> Compiler ContextField
-combinedItemContextfield geocodingCache patterns i key tags titleDateFormat postDateFormat bibDateFormat photoDateFormat =
+combinedItemContextfield :: Maybe FilePath -> Item CombinedItem -> String -> Tags -> String -> String -> String -> String -> Compiler ContextField
+combinedItemContextfield geocodingCache i key tags titleDateFormat postDateFormat bibDateFormat photoDateFormat =
   case itemBody i of
-    PostItem i' -> unContext (postContext patterns titleDateFormat postDateFormat tags) key [] i'
+    PostItem i' -> unContext (postContext titleDateFormat postDateFormat tags) key [] i'
     BibItem kind b -> do
       i' <- makeItem b
       unContext (bibPageContext (bibKindSingular kind) bibDateFormat tags) key [] i'
     PhotoItem i' -> unContext (photoContext geocodingCache photoDateFormat) key [] i'
 
-combinedItemContext :: Maybe FilePath -> Patterns -> Tags -> String -> String -> String -> String -> Output -> Context CombinedItem
-combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat bibDateFormat photoDateFormat output =
+combinedItemContext :: Maybe FilePath -> Tags -> String -> String -> String -> String -> Output -> Context CombinedItem
+combinedItemContext geocodingCache tags titleDateFormat postDateFormat bibDateFormat photoDateFormat output =
   field
     "class"
     ( \item -> case itemBody item of
@@ -137,46 +132,47 @@ combinedItemContext geocodingCache patterns tags titleDateFormat postDateFormat 
           PostItem _ -> noResult ""
           PhotoItem _ -> noResult ""
       )
-    `mappend` (Context $ \key _ i -> combinedItemContextfield geocodingCache patterns i key tags titleDateFormat postDateFormat bibDateFormat photoDateFormat)
+    `mappend` (Context $ \key _ i -> combinedItemContextfield geocodingCache i key tags titleDateFormat postDateFormat bibDateFormat photoDateFormat)
   where
     ext = case output of
       HTML -> ".html"
       MD   -> ".md"
 
-adjacentLogFieldHtml :: Pattern -> Int -> String -> Item String -> Compiler String
-adjacentLogFieldHtml logPattern offset format item = do
-  posts <- reverse <$> (recentFirstT =<< filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasNoVersion) "body" :: Compiler [Item String]))
-  let adjacent = getAdjacentLog posts item offset
-  case adjacent of
-    Nothing -> noResult ""
-    Just a -> do
-      mroute <- getRoute (itemIdentifier a)
-      let filePath = toFilePath (itemIdentifier item)
-          title = takeBaseName filePath
-          date = fmap (formatTime defaultTimeLocale (logDateFormat a format)) (dateFromTitle a)
-          label = fromMaybe title date
-      return $ maybe "" (\r -> "<a href=\"" ++ r ++ "\">" ++ label ++ "</a>") mroute
+-- | Prev/next log navigation from a Rules-time sorted list, so log pages
+-- don't depend on each other; 'Meur.Builder' invalidates them on set changes.
+adjacentLogContext :: [Identifier] -> String -> Context String
+adjacentLogContext sortedLogs postDateFormat =
+  field "htmlPrev" (adjacentLogFieldHtml sortedLogs (-1) postDateFormat)
+    `mappend` field "htmlNext" (adjacentLogFieldHtml sortedLogs 1 postDateFormat)
+    `mappend` field "mdPrev" (adjacentLogFieldMarkdown sortedLogs (-1) postDateFormat)
+    `mappend` field "mdNext" (adjacentLogFieldMarkdown sortedLogs 1 postDateFormat)
 
-adjacentLogFieldMarkdown :: Pattern -> Int -> String -> Item String -> Compiler String
-adjacentLogFieldMarkdown logPattern offset format item = do
-  posts <- reverse <$> (recentFirstT =<< filterM isNotDraft =<< (loadAllSnapshots (logPattern .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
-  let adjacent = getAdjacentLog posts item offset
-  case adjacent of
+adjacentLogFieldHtml :: [Identifier] -> Int -> String -> Item String -> Compiler String
+adjacentLogFieldHtml sortedLogs offset format item =
+  case getAdjacentLog sortedLogs item offset of
     Nothing -> noResult ""
-    Just a -> do
-      mroute <- getRoute (itemIdentifier a)
-      let filePath = toFilePath (itemIdentifier item)
-          title = takeBaseName filePath
-          date = fmap (formatTime defaultTimeLocale (logDateFormat a format)) (dateFromTitle a)
-          label = fromMaybe title date
-      return $ maybe "" (\r -> "[" ++ label ++ "](" ++ toUrl r ++ ")") mroute
+    Just adj -> do
+      mroute <- getRoute adj
+      return $ maybe "" (\r -> "<a href=\"" ++ toUrl r ++ "\">" ++ adjacentLogLabel adj format ++ "</a>") mroute
 
-getAdjacentLog :: [Item a] -> Item b -> Int -> Maybe (Item a)
-getAdjacentLog posts current offset =
-  case L.elemIndex (itemIdentifier current) (map itemIdentifier posts) of
-    Nothing -> Nothing
-    Just idx ->
-      let newIndex = idx + offset
-       in if newIndex >= 0 && newIndex < length posts
-            then Just (posts !! newIndex)
-            else Nothing
+adjacentLogFieldMarkdown :: [Identifier] -> Int -> String -> Item String -> Compiler String
+adjacentLogFieldMarkdown sortedLogs offset format item =
+  case getAdjacentLog sortedLogs item offset of
+    Nothing -> noResult ""
+    Just adj -> do
+      mroute <- getRoute (setVersion (Just "markdown") adj)
+      return $ maybe "" (\r -> "[" ++ adjacentLogLabel adj format ++ "](" ++ toUrl r ++ ")") mroute
+
+adjacentLogLabel :: Identifier -> String -> String
+adjacentLogLabel adj format =
+  let a = Item adj ()
+      date = fmap (formatTime defaultTimeLocale (logDateFormat a format)) (dateFromTitle a)
+   in fromMaybe (takeBaseName (toFilePath adj)) date
+
+getAdjacentLog :: [Identifier] -> Item a -> Int -> Maybe Identifier
+getAdjacentLog sortedLogs current offset = do
+  idx <- L.elemIndex (setVersion Nothing (itemIdentifier current)) sortedLogs
+  let newIndex = idx + offset
+  if newIndex >= 0 && newIndex < length sortedLogs
+    then Just (sortedLogs !! newIndex)
+    else Nothing

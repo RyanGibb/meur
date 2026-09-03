@@ -4,6 +4,7 @@
 module Meur.Builder (buildSite) where
 
 import Control.Monad (filterM, forM_, when)
+import qualified Data.List as L
 import qualified Data.Text as T
 import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDescription, feedRoot, feedTitle)
 import Meur.Bib (name)
@@ -14,8 +15,13 @@ import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, buildBibTag
 import Meur.Config
 import Meur.Context (markdownTitleContext, postContext)
 import Meur.Types (BibKind (..), FeedType (..), Output (..))
-import Meur.Util (isNotDraft, isNotDraftMeta, isPublished, recentFirstT)
-import System.FilePath ((</>))
+import Meur.Util (dateFromTitle, isNotDraft, isNotDraftMeta, isPublished, recentFirstT)
+import System.Directory (doesFileExist)
+import System.FilePath (takeFileName, (</>))
+
+-- | Tracked mirror of the published-log set; see the log adjacency rules.
+logListFile :: FilePath
+logListFile = ".log-list"
 
 buildSite :: SiteConfig -> IO ()
 buildSite config =
@@ -23,7 +29,11 @@ buildSite config =
         defaultConfiguration
           { destinationDirectory = outputDir (sitePaths config),
             storeDirectory = cacheDir (sitePaths config),
-            tmpDirectory = cacheDir (sitePaths config) </> "tmp"
+            tmpDirectory = cacheDir (sitePaths config) </> "tmp",
+            -- dotfiles are ignored by default, but .log-list must be tracked
+            ignoreFile = \path ->
+              takeFileName path /= logListFile
+                && ignoreFile defaultConfiguration path
           }
    in hakyllWith hakyllConfig $ do
         let paths = sitePaths config
@@ -49,246 +59,275 @@ buildSite config =
         let talkBibs = maybe [] id $ lookup "talks" bibsData
         let bibs = map (Paper,) paperBibs ++ map (Talk,) talkBibs
 
-        -- Build tags
-        postTags <- buildTags (postFiles patterns .&&. hasNoVersion) (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
-        let bibTags = buildBibTags bibs (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
-        let tags = mergeTags postTags bibTags
+        -- Bibs are read via preprocess, which Hakyll doesn't track; depend on
+        -- the .bib files explicitly so editing them invalidates pages.
+        -- (IdentifierDependency: pattern deps cost a universe scan per item.)
+        let bibDeps = map (IdentifierDependency . fromFilePath . bibFile) (bibliographies paths)
 
-        -- Tag file compilation
-        match (tagFiles patterns) $ do
-          compile getResourceBody
+        -- Log adjacency. Loading logs from each page's compiler would make
+        -- every log page depend on every log; instead compute prev/next here
+        -- and mirror the set into .log-list to invalidate pages when it changes.
+        logIds <- getMatches (logFiles patterns)
+        logMetas <- mapM getMetadata logIds
+        let sortedLogs =
+              L.sortOn (\i -> (dateFromTitle (Item i ()), toFilePath i)) $
+                [i | (i, m) <- zip logIds logMetas, isNotDraftMeta m]
+        preprocess $ do
+          let current = unlines (map toFilePath sortedLogs)
+          exists <- doesFileExist logListFile
+          old <-
+            if exists
+              then do
+                s <- readFile logListFile
+                length s `seq` return (Just s)
+              else return Nothing
+          when (old /= Just current) $ writeFile logListFile current
+        let logDeps = [IdentifierDependency (fromFilePath logListFile)]
 
-        -- Tag pages
-        tagsRules tags $ \tag pattern -> do
-          route staticRoute
-          compile $ tagCompiler paths geocodingCache patterns tags tag pattern bibs HTML
+        match (fromGlob logListFile) $
+          compile (getResourceBody :: Compiler (Item String))
 
-          when (enableDualOutput features) $ do
-            create [fromCapture "*.md" . T.unpack . T.toLower . T.pack $ tag] $ do
-              route staticRoute
-              compile $ tagCompiler paths geocodingCache patterns tags tag pattern bibs MD
+        rulesExtraDependencies bibDeps $ do
+          -- Build tags
+          postTags <- buildTags (postFiles patterns .&&. hasNoVersion) (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
+          let bibTags = buildBibTags bibs (fromCapture "*.html" . T.unpack . T.toLower . T.pack)
+          let tags = mergeTags postTags bibTags
 
-          when (enableFeeds features) $ do
-            let createTagFeed pat feedtype = do
-                  create [fromCapture pat . T.unpack . T.toLower . T.pack $ tag] $ do
-                    route idRoute
-                    compile $ do
-                      posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "body"
-                      let taggedBibs = filter (\(_, bib) -> bibHasTag tag bib) bibs
-                      let items = combinedItemRecentFirst =<< makeCombinedItems posts taggedBibs []
-                      combinedFeedCompiler feedtype feedConfig geocodingCache patterns dateFormat isoDateFormat tags (referencesFile paths) items
+          -- Tag file compilation
+          match (tagFiles patterns) $ do
+            compile getResourceBody
 
-            createTagFeed "*.xml" XmlFeed
-            createTagFeed "*.json" JsonFeed
+          -- Tag pages
+          tagsRules tags $ \tag pattern -> do
+            route staticRoute
+            compile $ tagCompiler paths geocodingCache tags tag pattern bibs HTML
 
-        -- Home page
-        match "static/home.org" $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ do
-            posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasNoVersion)
-            let items = combinedItemRecentFirst =<< makeCombinedItems posts bibs []
-            combinedListCompiler paths geocodingCache patterns tags items HTML
+            when (enableDualOutput features) $ do
+              create [fromCapture "*.md" . T.unpack . T.toLower . T.pack $ tag] $ do
+                route staticRoute
+                compile $ tagCompiler paths geocodingCache tags tag pattern bibs MD
 
-        when (enableDualOutput features) $ do
-          match "static/home.org" $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ do
-              posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasVersion "markdown")
-              let items = combinedItemRecentFirst =<< makeCombinedItems posts bibs []
-              combinedListCompiler paths geocodingCache patterns tags items MD
+            when (enableFeeds features) $ do
+              let createTagFeed pat feedtype = do
+                    create [fromCapture pat . T.unpack . T.toLower . T.pack $ tag] $ do
+                      route idRoute
+                      compile $ do
+                        posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (pattern .&&. postFiles patterns .&&. hasNoVersion) "body"
+                        let taggedBibs = filter (\(_, bib) -> bibHasTag tag bib) bibs
+                        let items = combinedItemRecentFirst =<< makeCombinedItems posts taggedBibs []
+                        combinedFeedCompiler feedtype feedConfig geocodingCache dateFormat isoDateFormat tags (referencesFile paths) items
 
-        -- Posts index
-        match "static/posts.org" $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ do
-            posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "teaser"
-            indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) HTML
+              createTagFeed "*.xml" XmlFeed
+              createTagFeed "*.json" JsonFeed
 
-        when (enableDualOutput features) $ do
-          match "static/posts.org" $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ do
-              posts <- recentFirst =<< filterM isPublished =<< (loadAllSnapshots (articleFiles patterns .&&. hasVersion "markdown") "teaser" :: Compiler [Item String])
-              indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) MD
-
-        -- Logs index
-        match "static/logs.org" $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ do
-            posts <- recentFirstT =<< (filterM isNotDraft =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body")
-            indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) HTML
-
-        when (enableDualOutput features) $ do
-          match "static/logs.org" $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ do
-              posts <- recentFirstT =<< (filterM isNotDraft =<< (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
-              indexCompiler paths tags posts (postContext patterns dateFormat dateFormat tags) MD
-
-        -- Tags page
-        match "static/tags.org" $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ tagsPageCompiler paths tags HTML
-
-        when (enableDualOutput features) $ do
-          match "static/tags.org" $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ tagsPageCompiler paths tags MD
-
-        -- Index page
-        match "static/index.org" $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ do
-            posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasNoVersion .&&. complement "static/index.org")
-            let items = makeCombinedItems posts bibs []
-            combinedListCompiler paths geocodingCache patterns tags items HTML
-
-        when (enableDualOutput features) $ do
-          match "static/index.org" $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ do
-              posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasVersion "markdown" .&&. complement "static/index.org")
-              let items = makeCombinedItems posts bibs []
-              combinedListCompiler paths geocodingCache patterns tags items MD
-
-        -- Photos
-        when (enablePhotos features) $ do
-          match "static/photos.org" $ do
+          -- Home page
+          match "static/home.org" $ do
             route $ staticRoute `composeRoutes` setExtension "html"
             compile $ do
-              photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasNoVersion) :: Compiler [Item CopyFile])
-              photosCompiler paths geocodingCache photos HTML
+              posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasNoVersion)
+              let items = combinedItemRecentFirst =<< makeCombinedItems posts bibs []
+              combinedListCompiler paths geocodingCache tags items HTML
 
           when (enableDualOutput features) $ do
-            match "static/photos.org" $ version "markdown" $ do
+            match "static/home.org" $ version "markdown" $ do
               route $ staticRoute `composeRoutes` setExtension "md"
               compile $ do
-                photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasVersion "markdown") :: Compiler [Item CopyFile])
-                photosCompiler paths geocodingCache photos MD
+                posts <- filterM isPublished =<< loadAll (articleFiles patterns .&&. hasVersion "markdown")
+                let items = combinedItemRecentFirst =<< makeCombinedItems posts bibs []
+                combinedListCompiler paths geocodingCache tags items MD
 
-        -- Bibliography sections
-        when (enableBibliography features) $ do
-          let bibSectionRules kind bibs' = do
-                match (fromGlob $ bibKindPlural kind ++ ".bib") $ do
-                  route idRoute
-                  compile bibFileCompiler
+          -- Posts index
+          match "static/posts.org" $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ do
+              posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "teaser"
+              indexCompiler paths tags posts (postContext dateFormat dateFormat tags) HTML
 
-                match (fromGlob $ "static/" ++ bibKindPlural kind ++ ".org") $ do
-                  route $ staticRoute `composeRoutes` setExtension "html"
-                  compile $ bibsCompiler paths kind tags bibs' HTML
+          when (enableDualOutput features) $ do
+            match "static/posts.org" $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ do
+                posts <- recentFirst =<< filterM isPublished =<< (loadAllSnapshots (articleFiles patterns .&&. hasVersion "markdown") "teaser" :: Compiler [Item String])
+                indexCompiler paths tags posts (postContext dateFormat dateFormat tags) MD
 
-                when (enableDualOutput features) $ do
-                  match (fromGlob $ "static/" ++ bibKindPlural kind ++ ".org") $ version "markdown" $ do
-                    route $ staticRoute `composeRoutes` setExtension "md"
-                    compile $ bibsCompiler paths kind tags bibs' MD
+          -- Logs index
+          match "static/logs.org" $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ do
+              posts <- recentFirstT =<< (filterM isNotDraft =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "body")
+              indexCompiler paths tags posts (postContext dateFormat dateFormat tags) HTML
 
-                forM_ bibs' $ \b -> do
-                  create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.bib") $ name b] $ do
+          when (enableDualOutput features) $ do
+            match "static/logs.org" $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ do
+                posts <- recentFirstT =<< (filterM isNotDraft =<< (loadAllSnapshots (logFiles patterns .&&. hasVersion "markdown") "body" :: Compiler [Item String]))
+                indexCompiler paths tags posts (postContext dateFormat dateFormat tags) MD
+
+          -- Tags page
+          match "static/tags.org" $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ tagsPageCompiler paths tags HTML
+
+          when (enableDualOutput features) $ do
+            match "static/tags.org" $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ tagsPageCompiler paths tags MD
+
+          -- Index page
+          match "static/index.org" $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ do
+              posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasNoVersion .&&. complement "static/index.org")
+              let items = makeCombinedItems posts bibs []
+              combinedListCompiler paths geocodingCache tags items HTML
+
+          when (enableDualOutput features) $ do
+            match "static/index.org" $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ do
+                posts <- filterM isNotDraft =<< loadAll (htmlFiles patterns .&&. hasVersion "markdown" .&&. complement "static/index.org")
+                let items = makeCombinedItems posts bibs []
+                combinedListCompiler paths geocodingCache tags items MD
+
+          -- Photos
+          when (enablePhotos features) $ do
+            match "static/photos.org" $ do
+              route $ staticRoute `composeRoutes` setExtension "html"
+              compile $ do
+                photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasNoVersion) :: Compiler [Item CopyFile])
+                photosCompiler paths geocodingCache photos HTML
+
+            when (enableDualOutput features) $ do
+              match "static/photos.org" $ version "markdown" $ do
+                route $ staticRoute `composeRoutes` setExtension "md"
+                compile $ do
+                  photos <- recentFirst =<< (loadAll (photoFiles patterns .&&. hasVersion "markdown") :: Compiler [Item CopyFile])
+                  photosCompiler paths geocodingCache photos MD
+
+          -- Bibliography sections
+          when (enableBibliography features) $ do
+            let bibSectionRules kind bibs' = do
+                  match (fromGlob $ bibKindPlural kind ++ ".bib") $ do
                     route idRoute
-                    compile $ makeItem b >>= applyTemplate "$bib$" (bibContext (bibKindSingular kind) dateFormat)
+                    compile bibFileCompiler
 
-                  create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.html") $ name b] $ do
-                    route idRoute
-                    compile $ bibCompiler kind b tags HTML
+                  match (fromGlob $ "static/" ++ bibKindPlural kind ++ ".org") $ do
+                    route $ staticRoute `composeRoutes` setExtension "html"
+                    compile $ bibsCompiler paths kind tags bibs' HTML
 
                   when (enableDualOutput features) $ do
-                    create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.md") $ name b] $ do
+                    match (fromGlob $ "static/" ++ bibKindPlural kind ++ ".org") $ version "markdown" $ do
+                      route $ staticRoute `composeRoutes` setExtension "md"
+                      compile $ bibsCompiler paths kind tags bibs' MD
+
+                  forM_ bibs' $ \b -> do
+                    create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.bib") $ name b] $ do
                       route idRoute
-                      compile $ bibCompiler kind b tags MD
+                      compile $ makeItem b >>= applyTemplate "$bib$" (bibContext (bibKindSingular kind) dateFormat)
 
-          bibSectionRules Paper paperBibs
-          bibSectionRules Talk talkBibs
+                    create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.html") $ name b] $ do
+                      route idRoute
+                      compile $ bibCompiler kind b tags HTML
 
-        -- Articles
-        matchMetadata (articleFiles patterns) isNotDraftMeta $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ postCompiler feedConfig paths patterns tags "templates/post.html" HTML
+                    when (enableDualOutput features) $ do
+                      create [fromCapture (fromGlob $ bibKindPlural kind ++ "/*.md") $ name b] $ do
+                        route idRoute
+                        compile $ bibCompiler kind b tags MD
 
-        when (enableDualOutput features) $ do
-          matchMetadata (articleFiles patterns) isNotDraftMeta $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ postCompiler feedConfig paths patterns tags "templates/post.md" MD
+            bibSectionRules Paper paperBibs
+            bibSectionRules Talk talkBibs
 
-        -- Drafts need compilers to be in Hakyll's universe for stable tag dependencies.
-        matchMetadata (articleFiles patterns) (not . isNotDraftMeta) $
-          compile $
-            getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
+          -- Articles
+          matchMetadata (articleFiles patterns) isNotDraftMeta $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ postCompiler feedConfig paths sortedLogs tags "templates/post.html" HTML
 
-        -- Logs
-        matchMetadata (logFiles patterns) isNotDraftMeta $ do
-          route $ staticRoute `composeRoutes` setExtension "html"
-          compile $ postCompiler feedConfig paths patterns tags "templates/log.html" HTML
+          when (enableDualOutput features) $ do
+            matchMetadata (articleFiles patterns) isNotDraftMeta $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ postCompiler feedConfig paths sortedLogs tags "templates/post.md" MD
 
-        when (enableDualOutput features) $ do
-          matchMetadata (logFiles patterns) isNotDraftMeta $ version "markdown" $ do
-            route $ staticRoute `composeRoutes` setExtension "md"
-            compile $ postCompiler feedConfig paths patterns tags "templates/log.md" MD
+          -- Drafts need compilers to be in Hakyll's universe for stable tag dependencies.
+          matchMetadata (articleFiles patterns) (not . isNotDraftMeta) $
+            compile $
+              getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
 
-        matchMetadata (logFiles patterns) (not . isNotDraftMeta) $
-          compile $
-            getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
+          -- Logs
+          rulesExtraDependencies logDeps $ matchMetadata (logFiles patterns) isNotDraftMeta $ do
+            route $ staticRoute `composeRoutes` setExtension "html"
+            compile $ postCompiler feedConfig paths sortedLogs tags "templates/log.html" HTML
 
-        -- Feeds
-        when (enableFeeds features) $ do
-          let createFeed name' items = do
-                create [fromFilePath (name' ++ ".xml")] $ do
-                  route idRoute
-                  compile $ combinedFeedCompiler XmlFeed feedConfig geocodingCache patterns dateFormat isoDateFormat tags (referencesFile paths) items
-                create [fromFilePath (name' ++ ".json")] $ do
-                  route idRoute
-                  compile $ combinedFeedCompiler JsonFeed feedConfig geocodingCache patterns dateFormat isoDateFormat tags (referencesFile paths) items
+          when (enableDualOutput features) $ do
+            rulesExtraDependencies logDeps $ matchMetadata (logFiles patterns) isNotDraftMeta $ version "markdown" $ do
+              route $ staticRoute `composeRoutes` setExtension "md"
+              compile $ postCompiler feedConfig paths sortedLogs tags "templates/log.md" MD
 
-          createFeed "home" $ do
-            posts <- filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "feed"
-            combinedItemRecentFirst =<< makeCombinedItems posts bibs []
-          createFeed "posts" $ do
-            posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "feed"
-            makeCombinedItems posts [] []
-          createFeed "logs" $ do
-            posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed"
-            makeCombinedItems posts [] []
-          when (enableBibliography features) $ do
-            createFeed "papers" $ makeCombinedItems [] (map (Paper,) paperBibs) []
-            createFeed "talks" $ makeCombinedItems [] (map (Talk,) talkBibs) []
-          when (enablePhotos features) $ do
-            createFeed "photos" $ combinedItemRecentFirst =<< makeCombinedItems [] [] =<< (loadAll (photoFiles patterns .&&. hasNoVersion) :: Compiler [Item CopyFile])
+          matchMetadata (logFiles patterns) (not . isNotDraftMeta) $
+            compile $
+              getResourceBody >>= saveSnapshot "body" >>= saveSnapshot "teaser" >>= saveSnapshot "feed"
 
-        -- Sitemap
-        create ["sitemap.xml"] $ do
-          route idRoute
-          compile $ do
-            posts <- loadAll (htmlFiles patterns .&&. hasNoVersion)
-            let sitemapCtx =
-                  listField "pages" (urlField "loc" `mappend` postContext patterns dateFormat dateFormat tags) (return posts)
-                    `mappend` constField "root" (siteRoot config)
-                    `mappend` defaultContext
-            makeItem ""
-              >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
+          -- Feeds
+          when (enableFeeds features) $ do
+            let createFeed name' items = do
+                  create [fromFilePath (name' ++ ".xml")] $ do
+                    route idRoute
+                    compile $ combinedFeedCompiler XmlFeed feedConfig geocodingCache dateFormat isoDateFormat tags (referencesFile paths) items
+                  create [fromFilePath (name' ++ ".json")] $ do
+                    route idRoute
+                    compile $ combinedFeedCompiler JsonFeed feedConfig geocodingCache dateFormat isoDateFormat tags (referencesFile paths) items
 
-        -- 404 page
-        match "404.md" $ do
-          route $ setExtension "html"
-          compile $ do
-            getResourceBody
-              >>= loadAndApplyTemplate "templates/default.html" markdownTitleContext
+            createFeed "home" $ do
+              posts <- filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "feed"
+              combinedItemRecentFirst =<< makeCombinedItems posts bibs []
+            createFeed "posts" $ do
+              posts <- recentFirst =<< filterM isPublished =<< loadAllSnapshots (articleFiles patterns .&&. hasNoVersion) "feed"
+              makeCombinedItems posts [] []
+            createFeed "logs" $ do
+              posts <- recentFirstT =<< filterM isPublished =<< loadAllSnapshots (logFiles patterns .&&. hasNoVersion) "feed"
+              makeCombinedItems posts [] []
+            when (enableBibliography features) $ do
+              createFeed "papers" $ makeCombinedItems [] (map (Paper,) paperBibs) []
+              createFeed "talks" $ makeCombinedItems [] (map (Talk,) talkBibs) []
+            when (enablePhotos features) $ do
+              createFeed "photos" $ combinedItemRecentFirst =<< makeCombinedItems [] [] =<< (loadAll (photoFiles patterns .&&. hasNoVersion) :: Compiler [Item CopyFile])
 
-        -- Copy files
-        matchMetadata (copyFiles patterns) isNotDraftMeta $ do
-          route staticRoute
-          compile copyFileCompiler
+          -- Sitemap
+          create ["sitemap.xml"] $ do
+            route idRoute
+            compile $ do
+              posts <- loadAll (htmlFiles patterns .&&. hasNoVersion)
+              let sitemapCtx =
+                    listField "pages" (urlField "loc" `mappend` postContext dateFormat dateFormat tags) (return posts)
+                      `mappend` constField "root" (siteRoot config)
+                      `mappend` defaultContext
+              makeItem ""
+                >>= loadAndApplyTemplate "templates/sitemap.xml" sitemapCtx
 
-        -- CSS
-        match "static/*.css" $ do
-          route staticRoute
-          compile compressCssCompiler
+          -- 404 page
+          match "404.md" $ do
+            route $ setExtension "html"
+            compile $ do
+              getResourceBody
+                >>= loadAndApplyTemplate "templates/default.html" markdownTitleContext
 
-        -- CSL and bibliography
-        match "*.csl" $
-          compile cslCompiler
+          -- Copy files
+          matchMetadata (copyFiles patterns) isNotDraftMeta $ do
+            route staticRoute
+            compile copyFileCompiler
 
-        match (fromGlob $ referencesFile paths) $
-          compile biblioCompiler
+          -- CSS
+          match "static/*.css" $ do
+            route staticRoute
+            compile compressCssCompiler
 
-        -- Templates
-        match "templates/*" $
-          compile templateBodyCompiler
+          -- CSL and bibliography
+          match "*.csl" $
+            compile cslCompiler
+
+          match (fromGlob $ referencesFile paths) $
+            compile biblioCompiler
+
+          -- Templates
+          match "templates/*" $
+            compile templateBodyCompiler

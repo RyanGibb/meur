@@ -20,7 +20,7 @@ import Hakyll hiding (FeedConfiguration, feedAuthorEmail, feedAuthorName, feedDe
 import Meur.Bib (Bib, bibsIndex, loadBibs)
 import Meur.BibHakyll (bibContext, bibDate)
 import Meur.Compiler.Tag (bibKindSingular)
-import Meur.Config (FeedConfiguration (..), Patterns (..))
+import Meur.Config (FeedConfiguration (..))
 import Meur.Context (bibPageContext, combinedItemContext, combinedItemContextfield)
 import Meur.Pandoc (extractCitationKeys, readerOptions)
 import Meur.Types (CombinedItem (..), FeedType (..), Output (..))
@@ -69,14 +69,13 @@ combinedFeedCompiler ::
   FeedType ->
   FeedConfiguration ->
   Maybe FilePath ->
-  Patterns ->
   String ->
   String ->
   Tags ->
   FilePath ->
   Compiler [Item CombinedItem] ->
   Compiler (Item String)
-combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateFormat tags referencesFile combinedItems = do
+combinedFeedCompiler feedType config geocodingCache dateFormat isoDateFormat tags referencesFile combinedItems = do
   let template = case feedType of
         XmlFeed -> "templates/atom.xml"
         JsonFeed -> "templates/feed.json"
@@ -91,7 +90,7 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
   let feedCombinedItemContext =
         contentField
           `mappend` listFieldWith "references" (referenceContext dateFormat bibs) referencesField
-          `mappend` combinedItemContext geocodingCache patterns tags dateFormat isoDateFormat isoDateFormat isoDateFormat HTML
+          `mappend` combinedItemContext geocodingCache tags dateFormat isoDateFormat isoDateFormat isoDateFormat HTML
           `mappend` updatedField
           `mappend` feedContext config
         where
@@ -113,7 +112,7 @@ combinedFeedCompiler feedType config geocodingCache patterns dateFormat isoDateF
               StringField str -> return $ applyEscape str
               ListField _ _ -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a listField!"
           updatedField = field "updated" $ \i -> do
-            c <- combinedItemContextfield geocodingCache patterns i "published" tags dateFormat isoDateFormat isoDateFormat isoDateFormat
+            c <- combinedItemContextfield geocodingCache i "published" tags dateFormat isoDateFormat isoDateFormat isoDateFormat
             case c of
               EmptyField -> fail "Hakyll.Web.Template.Context.mapContext: can't map over a boolField!"
               StringField str -> return str

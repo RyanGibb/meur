@@ -28,8 +28,8 @@ import qualified Meur.Bib
 import Meur.BibHakyll (bibDate)
 import Meur.Compiler.Feed (absolutizeUrls)
 import Meur.Compiler.Tag (bibHasTag, bibKindPlural, bibKindSingular, getBibSubtitle, getBibTitle, tagContext)
-import Meur.Config (FeedConfiguration, PathConfig, Patterns (..), defaultCslStyle, referencesFile)
-import Meur.Context (bibPageContext, combinedItemContext, indexContext, markdownTitleContext, photosContext, postContext)
+import Meur.Config (FeedConfiguration, PathConfig, defaultCslStyle, referencesFile)
+import Meur.Context (adjacentLogContext, bibPageContext, combinedItemContext, indexContext, markdownTitleContext, photosContext, postContext)
 import Meur.Pandoc (bibRenderFeed, bibRenderHtml, bibRenderMarkdown)
 import Meur.Types (BibKind (..), CombinedItem (..), Output (..))
 import Meur.Util (isPublished, itemUTC, recentFirstT)
@@ -81,12 +81,12 @@ indexCompiler pathConfig _tags posts context output = do
     >>= loadAndApplyTemplate template markdownTitleContext
     >>= relativizeUrls
 
-postCompiler :: FeedConfiguration -> PathConfig -> Patterns -> Tags -> Identifier -> Output -> Compiler (Item String)
-postCompiler feedConfig pathConfig patterns tags template output =
+postCompiler :: FeedConfiguration -> PathConfig -> [Identifier] -> Tags -> Identifier -> Output -> Compiler (Item String)
+postCompiler feedConfig pathConfig sortedLogs tags template output =
   let refFile = referencesFile pathConfig
       cslFile = defaultCslStyle pathConfig
       dateFormat = "%-d %b. %Y"
-      ctx = postContext patterns dateFormat dateFormat tags
+      ctx = adjacentLogContext sortedLogs dateFormat `mappend` postContext dateFormat dateFormat tags
    in case output of
         HTML -> do
           _ <- getResourceBody
@@ -151,16 +151,15 @@ bibCompiler kind b tags output =
 combinedListCompiler ::
   PathConfig ->
   Maybe FilePath ->
-  Patterns ->
   Tags ->
   Compiler [Item CombinedItem] ->
   Output ->
   Compiler (Item String)
-combinedListCompiler pathConfig geocodingCache patterns tags items output = do
+combinedListCompiler pathConfig geocodingCache tags items output = do
   let refFile = referencesFile pathConfig
   let cslFile = defaultCslStyle pathConfig
   let dateFormat = "%-d %b. %Y"
-  let baseCtx = listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat output) items `mappend` markdownTitleContext
+  let baseCtx = listField "pages" (combinedItemContext geocodingCache tags dateFormat dateFormat "%b %Y" dateFormat output) items `mappend` markdownTitleContext
   let (bibRenderFn, defaultTemplate, ctx) = case output of
         HTML -> (bibRenderHtml pathConfig, "templates/default.html", constField "html" "true" `mappend` baseCtx)
         MD -> (bibRenderMarkdown pathConfig, "templates/default.md", baseCtx)
@@ -170,8 +169,8 @@ combinedListCompiler pathConfig geocodingCache patterns tags items output = do
     >>= loadAndApplyTemplate defaultTemplate markdownTitleContext
     >>= relativizeUrls
 
-tagCompiler :: PathConfig -> Maybe FilePath -> Patterns -> Tags -> String -> Pattern -> [(BibKind, Bib)] -> Output -> Compiler (Item String)
-tagCompiler pathConfig geocodingCache patterns tags tag pattern bibs output = do
+tagCompiler :: PathConfig -> Maybe FilePath -> Tags -> String -> Pattern -> [(BibKind, Bib)] -> Output -> Compiler (Item String)
+tagCompiler pathConfig geocodingCache tags tag pattern bibs output = do
   let refFile = referencesFile pathConfig
   let cslFile = defaultCslStyle pathConfig
   let dateFormat = "%-d %b. %Y"
@@ -184,7 +183,7 @@ tagCompiler pathConfig geocodingCache patterns tags tag pattern bibs output = do
         constField "title" tag
           `mappend` constField "filename" filename
           `mappend` constField "feed" filename
-          `mappend` listField "pages" (combinedItemContext geocodingCache patterns tags dateFormat dateFormat "%b %Y" dateFormat output) combinedItems
+          `mappend` listField "pages" (combinedItemContext geocodingCache tags dateFormat dateFormat "%b %Y" dateFormat output) combinedItems
           `mappend` markdownField "markdown"
           `mappend` markdownTitleContext
   let (bibRenderFn, ctx, defaultTemplate, tagTemplate) = case output of
