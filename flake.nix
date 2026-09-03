@@ -11,8 +11,17 @@
       let
         pkgs = import nixpkgs { inherit system; };
 
+        haskellPackages = pkgs.haskellPackages.override {
+          overrides = self: super: {
+            # Cache compiled regexes in Pattern matching; Hakyll recompiles
+            # them on every match call, which dominates regex-heavy builds.
+            hakyll = pkgs.haskell.lib.appendPatches super.hakyll
+              [ ./nix/hakyll-regex-cache.patch ];
+          };
+        };
+
         # Build the meur package from the cabal file
-        meur = pkgs.haskellPackages.callCabal2nix "meur" ./. { };
+        meur = haskellPackages.callCabal2nix "meur" ./. { };
 
       in
       {
@@ -26,10 +35,10 @@
           program = "${meur}/bin/meur";
         };
 
-        devShells.default = pkgs.haskellPackages.shellFor {
+        devShells.default = haskellPackages.shellFor {
           packages = p: [ meur ];
           withHoogle = true;
-          nativeBuildInputs = with pkgs.haskellPackages; [
+          nativeBuildInputs = with haskellPackages; [
             haskell-language-server
             cabal-install
           ];

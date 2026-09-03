@@ -1,0 +1,68 @@
+--- a/lib/Hakyll/Core/Identifier/Pattern.hs
++++ b/lib/Hakyll/Core/Identifier/Pattern.hs
+@@ -62,14 +62,18 @@
+ import           Control.Monad                           (msum)
+ import           Data.List                               (inits, isPrefixOf,
+                                                           tails)
++import           Data.IORef                              (IORef, atomicModifyIORef',
++                                                          newIORef, readIORef)
++import qualified Data.Map                                as M
+ import           Data.Maybe                              (isJust)
+ import qualified Data.Set                                as S
++import           System.IO.Unsafe                        (unsafePerformIO)
+ import           System.FilePath                         (normalise, pathSeparator)
+ 
+ 
+ --------------------------------------------------------------------------------
+ import           GHC.Exts                                (IsString, fromString)
+-import           Text.Regex.TDFA                         ((=~))
++import           Text.Regex.TDFA                         (Regex, makeRegex, match)
+ 
+ 
+ --------------------------------------------------------------------------------
+@@ -177,6 +181,27 @@
+ 
+ 
+ --------------------------------------------------------------------------------
++-- | Compiled regexes, cached. 'Pattern' stores regexes as strings and
++-- 'matches' runs many times per pattern, so compiling on every call can
++-- dominate build time on regex-heavy sites.
++{-# NOINLINE regexCacheRef #-}
++regexCacheRef :: IORef (M.Map String Regex)
++regexCacheRef = unsafePerformIO (newIORef M.empty)
++
++
++--------------------------------------------------------------------------------
++compiledRegex :: String -> Regex
++compiledRegex r = unsafePerformIO $ do
++    cache <- readIORef regexCacheRef
++    case M.lookup r cache of
++        Just c  -> return c
++        Nothing -> do
++            let c = makeRegex r
++            atomicModifyIORef' regexCacheRef (\m -> (M.insert r c m, ()))
++            return c
++
++
++--------------------------------------------------------------------------------
+ -- | Check if an identifier matches a pattern
+ matches :: Pattern -> Identifier -> Bool
+ matches Everything     _ = True
+@@ -184,7 +209,7 @@
+ matches (And x y)      i = matches x i && matches y i
+ matches (Glob p)       i = isJust $ capture (Glob p) i
+ matches (List l)       i = i `S.member` l
+-matches (Regex r)      i = (removeWinPathSeparator $ toFilePath i) =~ r
++matches (Regex r)      i = match (compiledRegex r) (removeWinPathSeparator $ toFilePath i)
+ matches (Version v)    i = identifierVersion i == v
+ 
+ 
+@@ -206,7 +231,7 @@
+ capture :: Pattern -> Identifier -> Maybe [String]
+ capture (Glob p) i = capture' p (toFilePath i)
+ capture (Regex pat) i = Just groups
+-  where (_, _, _, groups) = ((removeWinPathSeparator $ toFilePath i) =~ pat) :: (String, String, String, [String])
++  where (_, _, _, groups) = (match (compiledRegex pat) (removeWinPathSeparator $ toFilePath i)) :: (String, String, String, [String])
+ capture _        _ = Nothing
+ 
+ 

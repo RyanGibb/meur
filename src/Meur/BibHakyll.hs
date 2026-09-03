@@ -10,6 +10,8 @@ module Meur.BibHakyll where
 import Control.Applicative ((<|>))
 import Data.Binary (Binary (..))
 import Data.Either (fromRight)
+import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef)
+import qualified Data.Map as M
 import qualified Data.Text as T
 import Data.Time (UTCTime, defaultTimeLocale, formatTime, parseTimeM)
 import Data.Typeable (Typeable)
@@ -19,22 +21,45 @@ import Text.Pandoc
 import qualified Text.Pandoc.Builder as B
 import Text.Pandoc.Citeproc
 import qualified Text.Pandoc.Walk as B
+import System.IO.Unsafe (unsafePerformIO)
 import Text.Parsec hiding ((<|>))
 
 instance Writable Bib where
   write file item = writeFile file (showBib $ itemBody item)
 
+-- Bib field values are rendered through pandoc's LaTeX reader on every
+-- context lookup, so the same handful of strings recur constantly; memoize.
+latexifyMemo :: IORef (M.Map String (Either PandocError String)) -> (String -> Either PandocError String) -> String -> Either PandocError String
+latexifyMemo ref f s = unsafePerformIO $ do
+  m <- readIORef ref
+  case M.lookup s m of
+    Just r -> return r
+    Nothing -> do
+      let r = case f s of
+            e@(Left err) -> err `seq` e
+            e@(Right v) -> length v `seq` e
+      atomicModifyIORef' ref (\m' -> (M.insert s r m', ()))
+      return r
+
 latexifyPlain :: String -> Either PandocError String
-latexifyPlain s = do
+latexifyPlain = latexifyMemo latexifyPlainCache $ \s -> do
   la <- runPure $ readLaTeX def $ T.pack s
   te <- runPure $ writePlain def la
   return $ T.unpack (T.unwords . T.words $ te)
 
+{-# NOINLINE latexifyPlainCache #-}
+latexifyPlainCache :: IORef (M.Map String (Either PandocError String))
+latexifyPlainCache = unsafePerformIO (newIORef M.empty)
+
 latexifyHtml :: String -> Either PandocError String
-latexifyHtml s = do
+latexifyHtml = latexifyMemo latexifyHtmlCache $ \s -> do
   la <- runPure $ readLaTeX def $ T.pack s
   te <- runPure $ writeHtml5String def la
   return $ T.unpack (T.strip te)
+
+{-# NOINLINE latexifyHtmlCache #-}
+latexifyHtmlCache :: IORef (M.Map String (Either PandocError String))
+latexifyHtmlCache = unsafePerformIO (newIORef M.empty)
 
 bibClsWith :: (Pandoc -> PandocIO T.Text) -> String -> Bib -> IO String
 bibClsWith writer csl bib = do
