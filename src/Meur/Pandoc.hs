@@ -47,7 +47,17 @@ writerOptions =
 markdownWriterOptions :: WriterOptions
 markdownWriterOptions =
   def
-    { writerExtensions = extensionsFromList [Ext_smart, Ext_raw_html],
+    { writerExtensions =
+        extensionsFromList
+          [ Ext_smart,
+            Ext_raw_html,
+            Ext_pipe_tables,
+            Ext_table_captions,
+            Ext_tex_math_dollars,
+            Ext_footnotes,
+            Ext_backtick_code_blocks,
+            Ext_implicit_figures
+          ],
       writerHighlightStyle = Just pygments,
       writerCiteMethod = Citeproc
     }
